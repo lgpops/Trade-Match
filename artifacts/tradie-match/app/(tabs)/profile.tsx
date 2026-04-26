@@ -16,6 +16,11 @@ import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { getTrade } from "@/constants/trades";
+import {
+  formatCollarType,
+  formatEthnicity,
+  formatHeight,
+} from "@/constants/demographics";
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -81,7 +86,10 @@ export default function ProfileScreen() {
             <TradeBadge trade={user.trade} size="lg" />
           </View>
           <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
-            {user.suburb} · {user.yearsOnTools} yrs on the tools
+            {user.suburb} · {formatCollarType(user.collarType)}
+          </Text>
+          <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
+            {user.yearsOnTools} yrs experience · {formatHeight(user.heightCm)}
           </Text>
         </LinearGradient>
 
@@ -105,6 +113,24 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
+          <DetailRow
+            icon="briefcase"
+            label="Collar type"
+            value={formatCollarType(user.collarType)}
+            colors={colors}
+          />
+          <DetailRow
+            icon="globe"
+            label="Ethnicity"
+            value={formatEthnicity(user.ethnicity)}
+            colors={colors}
+          />
+          <DetailRow
+            icon="maximize-2"
+            label="Height"
+            value={formatHeight(user.heightCm)}
+            colors={colors}
+          />
           <DetailRow
             icon="truck"
             label="The rig"

@@ -14,9 +14,21 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TradeBadge } from "@/components/TradeBadge";
+import {
+  COLLAR_OPTIONS,
+  ETHNICITY_OPTIONS,
+  formatHeight,
+  type CollarType,
+  type Ethnicity,
+} from "@/constants/demographics";
 import type { Gender } from "@/constants/seedProfiles";
 import { TRADES, type TradeKey } from "@/constants/trades";
-import { useApp, type Mode, type ShowMe } from "@/context/AppContext";
+import {
+  DEFAULT_DISCOVERY_FILTERS,
+  useApp,
+  type Mode,
+  type ShowMe,
+} from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -64,6 +76,9 @@ export default function Onboarding() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
+  const [ethnicity, setEthnicity] = useState<Ethnicity | null>(null);
+  const [heightCm, setHeightCm] = useState("175");
+  const [collarType, setCollarType] = useState<CollarType>("blue");
   const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState<TradeKey | null>(null);
   const [years, setYears] = useState("");
@@ -75,23 +90,47 @@ export default function Onboarding() {
   const [brewOfChoice, setBrewOfChoice] = useState("");
 
   const canContinue = useMemo(() => {
-    if (step === 0) return name.trim().length > 0 && Number(age) >= 18 && !!gender;
+    if (step === 0) {
+      return (
+        name.trim().length > 0 &&
+        Number(age) >= 18 &&
+        !!gender &&
+        !!ethnicity &&
+        Number(heightCm) >= 140
+      );
+    }
     if (step === 1) return !!trade && Number(years) >= 0 && suburb.trim().length > 0;
     if (step === 2) return !!mode && !!showMe;
     if (step === 3) return bio.trim().length >= 10;
     return true;
-  }, [step, name, age, gender, trade, years, suburb, mode, showMe, bio]);
+  }, [
+    step,
+    name,
+    age,
+    gender,
+    ethnicity,
+    heightCm,
+    trade,
+    years,
+    suburb,
+    mode,
+    showMe,
+    bio,
+  ]);
 
   const onNext = async () => {
     if (step < 4) {
       setStep((s) => (s + 1) as Step);
       return;
     }
-    if (!trade || !gender) return;
+    if (!trade || !gender || !ethnicity) return;
     await saveUser({
       name: name.trim(),
       age: Number(age),
       gender,
+      collarType,
+      ethnicity,
+      heightCm: Number(heightCm),
       trade,
       yearsOnTools: Number(years || 0),
       suburb: suburb.trim(),
@@ -101,6 +140,7 @@ export default function Onboarding() {
       brewOfChoice: brewOfChoice.trim() || "Whatever's cold",
       mode,
       showMe,
+      filters: DEFAULT_DISCOVERY_FILTERS,
     });
   };
 
@@ -159,6 +199,10 @@ export default function Onboarding() {
               setAge={setAge}
               gender={gender}
               setGender={setGender}
+              ethnicity={ethnicity}
+              setEthnicity={setEthnicity}
+              heightCm={heightCm}
+              setHeightCm={setHeightCm}
             />
           )}
           {step === 1 && (
@@ -166,6 +210,8 @@ export default function Onboarding() {
               colors={colors}
               trade={trade}
               setTrade={setTrade}
+              collarType={collarType}
+              setCollarType={setCollarType}
               years={years}
               setYears={setYears}
               suburb={suburb}
@@ -302,6 +348,10 @@ function Step0({
   setAge,
   gender,
   setGender,
+  ethnicity,
+  setEthnicity,
+  heightCm,
+  setHeightCm,
 }: {
   colors: ReturnType<typeof useColors>;
   name: string;
@@ -310,6 +360,10 @@ function Step0({
   setAge: (s: string) => void;
   gender: Gender | null;
   setGender: (g: Gender) => void;
+  ethnicity: Ethnicity | null;
+  setEthnicity: (e: Ethnicity) => void;
+  heightCm: string;
+  setHeightCm: (s: string) => void;
 }) {
   return (
     <View style={{ gap: 18 }}>
@@ -367,6 +421,51 @@ function Step0({
           })}
         </View>
       </Field>
+      <Field label="Ethnicity">
+        <View style={styles.wrapSegments}>
+          {ETHNICITY_OPTIONS.map((option) => {
+            const selected = ethnicity === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => setEthnicity(option.value)}
+                style={({ pressed }) => [
+                  styles.optionChip,
+                  {
+                    backgroundColor: selected ? colors.primary : colors.card,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.optionChipText,
+                    { color: selected ? "#FFFFFF" : colors.foreground },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+      <Field label="Height">
+        <View style={[styles.heightInputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Input
+            value={heightCm}
+            onChangeText={(t) => setHeightCm(t.replace(/[^0-9]/g, "").slice(0, 3))}
+            placeholder="175"
+            keyboardType="number-pad"
+            maxLength={3}
+            style={styles.heightInput}
+          />
+          <Text style={[styles.heightPreview, { color: colors.mutedForeground }]}>
+            {formatHeight(Number(heightCm))}
+          </Text>
+        </View>
+      </Field>
     </View>
   );
 }
@@ -375,6 +474,8 @@ function Step1({
   colors,
   trade,
   setTrade,
+  collarType,
+  setCollarType,
   years,
   setYears,
   suburb,
@@ -383,6 +484,8 @@ function Step1({
   colors: ReturnType<typeof useColors>;
   trade: TradeKey | null;
   setTrade: (t: TradeKey) => void;
+  collarType: CollarType;
+  setCollarType: (c: CollarType) => void;
   years: string;
   setYears: (s: string) => void;
   suburb: string;
@@ -392,42 +495,99 @@ function Step1({
     <View style={{ gap: 18 }}>
       <Heading
         eyebrow="STEP 2 OF 5"
-        title="What's your trade?"
-        sub="Pick the one that pays the bills."
+        title="What's your collar?"
+        sub="Red Collar is for blue-collar and white-collar people. Pick what fits your work."
         colors={colors}
       />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingRight: 12 }}
-      >
-        {TRADES.map((t) => {
-          const selected = t.key === trade;
-          return (
-            <Pressable
-              key={t.key}
-              onPress={() => setTrade(t.key)}
-              style={({ pressed }) => [
-                styles.tradeChip,
-                {
-                  backgroundColor: selected ? t.color : colors.card,
-                  borderColor: selected ? t.color : colors.border,
-                },
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tradeChipText,
-                  { color: selected ? "#FFFFFF" : colors.foreground },
+      <Field label="Collar type">
+        <View style={{ gap: 10 }}>
+          {COLLAR_OPTIONS.map((option) => {
+            const selected = collarType === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => setCollarType(option.value)}
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  {
+                    backgroundColor: selected ? colors.accent : colors.card,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                  pressed && { opacity: 0.85 },
                 ]}
               >
-                {t.nickname}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                <View
+                  style={[
+                    styles.modeIcon,
+                    {
+                      backgroundColor: selected ? colors.primary : colors.secondary,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={option.value === "blue" ? "tool" : "briefcase"}
+                    size={18}
+                    color={selected ? "#FFFFFF" : colors.foreground}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modeLabel, { color: colors.foreground }]}>
+                    {option.label}
+                  </Text>
+                  <Text style={[styles.modeSub, { color: colors.mutedForeground }]}>
+                    {option.sub}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.radio,
+                    {
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected ? colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  {selected ? <Feather name="check" size={12} color="#FFFFFF" /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+      <Field label="Work / industry">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingRight: 12 }}
+        >
+          {TRADES.map((t) => {
+            const selected = t.key === trade;
+            return (
+              <Pressable
+                key={t.key}
+                onPress={() => setTrade(t.key)}
+                style={({ pressed }) => [
+                  styles.tradeChip,
+                  {
+                    backgroundColor: selected ? t.color : colors.card,
+                    borderColor: selected ? t.color : colors.border,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tradeChipText,
+                    { color: selected ? "#FFFFFF" : colors.foreground },
+                  ]}
+                >
+                  {t.nickname}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </Field>
       {trade && (
         <View style={{ alignItems: "flex-start", marginTop: -4 }}>
           <TradeBadge trade={trade} size="md" />
@@ -737,6 +897,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  wrapSegments: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   segment: {
     flex: 1,
     paddingVertical: 12,
@@ -746,6 +911,33 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  optionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
+  optionChipText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  heightInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingRight: 14,
+  },
+  heightInput: {
+    flex: 1,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+  },
+  heightPreview: {
+    fontSize: 13,
     fontFamily: "Inter_600SemiBold",
   },
   modeCard: {

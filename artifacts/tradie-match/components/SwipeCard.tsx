@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { TradeBadge } from "@/components/TradeBadge";
+import { formatCollarType, formatHeight } from "@/constants/demographics";
 import type { SeedProfile } from "@/constants/seedProfiles";
 import { getTrade } from "@/constants/trades";
 import { useColors } from "@/hooks/useColors";
@@ -143,7 +144,10 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
           {profile.name}, {profile.age}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {profile.yearsOnTools} yrs on the tools · {profile.suburb}
+          {formatCollarType(profile.collarType)} · {formatHeight(profile.heightCm)}
+        </Text>
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {profile.yearsOnTools} yrs experience · {profile.suburb}
         </Text>
         <Text style={styles.bio} numberOfLines={2}>
           {profile.bio}

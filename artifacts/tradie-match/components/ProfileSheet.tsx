@@ -13,6 +13,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TradeBadge } from "@/components/TradeBadge";
+import {
+  formatCollarType,
+  formatEthnicity,
+  formatHeight,
+} from "@/constants/demographics";
 import type { SeedProfile } from "@/constants/seedProfiles";
 import { getTrade } from "@/constants/trades";
 import { useColors } from "@/hooks/useColors";
@@ -74,7 +79,7 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
                   {profile.name}, {profile.age}
                 </Text>
                 <Text style={styles.heroSub}>
-                  {profile.yearsOnTools} yrs on the tools · {profile.suburb}
+                  {formatCollarType(profile.collarType)} · {profile.suburb}
                 </Text>
               </View>
               <View style={[styles.tradeStripe, { backgroundColor: trade.color }]} />
@@ -86,8 +91,32 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
               </Text>
 
               <Detail
+                icon={profile.collarType === "blue" ? "tool" : "briefcase"}
+                label="Collar"
+                value={formatCollarType(profile.collarType)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
+                icon="globe"
+                label="Ethnicity"
+                value={formatEthnicity(profile.ethnicity)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
+                icon="bar-chart-2"
+                label="Height"
+                value={formatHeight(profile.heightCm)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
                 icon="truck"
-                label="The rig"
+                label={profile.collarType === "blue" ? "The rig" : "Work setup"}
                 value={profile.rig}
                 color={colors.foreground}
                 muted={colors.mutedForeground}

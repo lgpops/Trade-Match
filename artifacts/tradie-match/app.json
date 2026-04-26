@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Tradie Match",
-    "slug": "tradie-match",
+    "name": "Red Collar",
+    "slug": "red-collar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tradie-match",
+    "scheme": "red-collar",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {

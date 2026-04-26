@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -10,6 +11,16 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  COLLAR_FILTER_OPTIONS,
+  DEFAULT_MAX_HEIGHT_CM,
+  DEFAULT_MIN_HEIGHT_CM,
+  ETHNICITY_FILTER_OPTIONS,
+  formatHeight,
+  type CollarPreference,
+  type EthnicityPreference,
+} from "@/constants/demographics";
+import {
+  DEFAULT_DISCOVERY_FILTERS,
   useApp,
   type Mode,
   type ShowMe,
@@ -54,17 +65,60 @@ export function FiltersSheet({ visible, onClose }: Props) {
 
   const [mode, setMode] = useState<Mode>(user?.mode ?? "dating");
   const [showMe, setShowMe] = useState<ShowMe>(user?.showMe ?? "everyone");
+  const [collarPreference, setCollarPreference] =
+    useState<CollarPreference>("everyone");
+  const [ethnicityPreference, setEthnicityPreference] =
+    useState<EthnicityPreference>("everyone");
+  const [minHeightCm, setMinHeightCm] = useState(DEFAULT_MIN_HEIGHT_CM);
+  const [maxHeightCm, setMaxHeightCm] = useState(DEFAULT_MAX_HEIGHT_CM);
 
   React.useEffect(() => {
     if (visible && user) {
       setMode(user.mode);
       setShowMe(user.showMe);
+      setCollarPreference(
+        user.filters?.collarPreference ??
+          DEFAULT_DISCOVERY_FILTERS.collarPreference,
+      );
+      setEthnicityPreference(
+        user.filters?.ethnicityPreference ??
+          DEFAULT_DISCOVERY_FILTERS.ethnicityPreference,
+      );
+      setMinHeightCm(
+        user.filters?.minHeightCm ?? DEFAULT_DISCOVERY_FILTERS.minHeightCm,
+      );
+      setMaxHeightCm(
+        user.filters?.maxHeightCm ?? DEFAULT_DISCOVERY_FILTERS.maxHeightCm,
+      );
     }
   }, [visible, user]);
 
   const onSave = async () => {
-    await updatePrefs({ mode, showMe });
+    await updatePrefs({
+      mode,
+      showMe,
+      filters: {
+        collarPreference,
+        ethnicityPreference,
+        minHeightCm,
+        maxHeightCm,
+      },
+    });
     onClose();
+  };
+
+  const adjustMinHeight = (delta: number) => {
+    setMinHeightCm((current) => {
+      const next = Math.max(DEFAULT_MIN_HEIGHT_CM, Math.min(current + delta, maxHeightCm));
+      return next;
+    });
+  };
+
+  const adjustMaxHeight = (delta: number) => {
+    setMaxHeightCm((current) => {
+      const next = Math.min(DEFAULT_MAX_HEIGHT_CM, Math.max(current + delta, minHeightCm));
+      return next;
+    });
   };
 
   return (
@@ -96,114 +150,155 @@ export function FiltersSheet({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              I&apos;M HERE FOR
-            </Text>
-            <View style={{ gap: 10 }}>
-              {MODE_OPTIONS.map((opt) => {
-                const selected = mode === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => setMode(opt.value)}
-                    style={({ pressed }) => [
-                      styles.modeCard,
-                      {
-                        backgroundColor: selected ? colors.accent : colors.card,
-                        borderColor: selected ? colors.primary : colors.border,
-                      },
-                      pressed && { opacity: 0.85 },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.modeIcon,
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                I&apos;M HERE FOR
+              </Text>
+              <View style={{ gap: 10 }}>
+                {MODE_OPTIONS.map((opt) => {
+                  const selected = mode === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setMode(opt.value)}
+                      style={({ pressed }) => [
+                        styles.modeCard,
                         {
-                          backgroundColor: selected
-                            ? colors.primary
-                            : colors.secondary,
-                        },
-                      ]}
-                    >
-                      <Feather
-                        name={opt.icon}
-                        size={18}
-                        color={selected ? "#FFFFFF" : colors.foreground}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.modeLabel,
-                          { color: colors.foreground },
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.modeSub,
-                          { color: colors.mutedForeground },
-                        ]}
-                      >
-                        {opt.sub}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.radio,
-                        {
+                          backgroundColor: selected ? colors.accent : colors.card,
                           borderColor: selected ? colors.primary : colors.border,
-                          backgroundColor: selected ? colors.primary : "transparent",
                         },
+                        pressed && { opacity: 0.85 },
                       ]}
                     >
-                      {selected ? (
-                        <Feather name="check" size={12} color="#FFFFFF" />
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
+                      <View
+                        style={[
+                          styles.modeIcon,
+                          {
+                            backgroundColor: selected
+                              ? colors.primary
+                              : colors.secondary,
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name={opt.icon}
+                          size={18}
+                          color={selected ? "#FFFFFF" : colors.foreground}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.modeLabel,
+                            { color: colors.foreground },
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.modeSub,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {opt.sub}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.radio,
+                          {
+                            borderColor: selected ? colors.primary : colors.border,
+                            backgroundColor: selected ? colors.primary : "transparent",
+                          },
+                        ]}
+                      >
+                        {selected ? (
+                          <Feather name="check" size={12} color="#FFFFFF" />
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              SHOW ME
-            </Text>
-            <View style={styles.segments}>
-              {SHOW_OPTIONS.map((opt) => {
-                const selected = showMe === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => setShowMe(opt.value)}
-                    style={({ pressed }) => [
-                      styles.segment,
-                      {
-                        backgroundColor: selected ? colors.primary : colors.card,
-                        borderColor: selected ? colors.primary : colors.border,
-                      },
-                      pressed && { opacity: 0.85 },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.segmentText,
-                        {
-                          color: selected ? "#FFFFFF" : colors.foreground,
-                        },
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                SHOW ME
+              </Text>
+              <View style={styles.segments}>
+                {SHOW_OPTIONS.map((opt) => {
+                  const selected = showMe === opt.value;
+                  return (
+                    <Segment
+                      key={opt.value}
+                      label={opt.label}
+                      selected={selected}
+                      onPress={() => setShowMe(opt.value)}
+                    />
+                  );
+                })}
+              </View>
             </View>
-          </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                COLLAR TYPE
+              </Text>
+              <View style={styles.segments}>
+                {COLLAR_FILTER_OPTIONS.map((opt) => (
+                  <Segment
+                    key={opt.value}
+                    label={opt.label}
+                    selected={collarPreference === opt.value}
+                    onPress={() => setCollarPreference(opt.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                ETHNICITY
+              </Text>
+              <View style={styles.wrapSegments}>
+                {ETHNICITY_FILTER_OPTIONS.map((opt) => (
+                  <Chip
+                    key={opt.value}
+                    label={opt.label}
+                    selected={ethnicityPreference === opt.value}
+                    onPress={() => setEthnicityPreference(opt.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                HEIGHT
+              </Text>
+              <View style={[styles.heightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <HeightStepper
+                  label="Minimum"
+                  value={formatHeight(minHeightCm)}
+                  onDecrease={() => adjustMinHeight(-5)}
+                  onIncrease={() => adjustMinHeight(5)}
+                />
+                <View style={[styles.heightDivider, { backgroundColor: colors.border }]} />
+                <HeightStepper
+                  label="Maximum"
+                  value={formatHeight(maxHeightCm)}
+                  onDecrease={() => adjustMaxHeight(-5)}
+                  onIncrease={() => adjustMaxHeight(5)}
+                />
+              </View>
+            </View>
+          </ScrollView>
 
           <Pressable
             onPress={onSave}
@@ -221,6 +316,114 @@ export function FiltersSheet({ visible, onClose }: Props) {
   );
 }
 
+function Segment({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.segment,
+        {
+          backgroundColor: selected ? colors.primary : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <Text
+        style={[
+          styles.segmentText,
+          {
+            color: selected ? "#FFFFFF" : colors.foreground,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        {
+          backgroundColor: selected ? colors.primary : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          { color: selected ? "#FFFFFF" : colors.foreground },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function HeightStepper({
+  label,
+  value,
+  onDecrease,
+  onIncrease,
+}: {
+  label: string;
+  value: string;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={styles.heightStepper}>
+      <Text style={[styles.heightLabel, { color: colors.mutedForeground }]}>
+        {label}
+      </Text>
+      <View style={styles.heightControls}>
+        <Pressable
+          onPress={onDecrease}
+          style={[styles.heightButton, { backgroundColor: colors.secondary }]}
+        >
+          <Feather name="minus" size={16} color={colors.foreground} />
+        </Pressable>
+        <Text style={[styles.heightValue, { color: colors.foreground }]}>
+          {value}
+        </Text>
+        <Pressable
+          onPress={onIncrease}
+          style={[styles.heightButton, { backgroundColor: colors.secondary }]}
+        >
+          <Feather name="plus" size={16} color={colors.foreground} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "flex-end" },
   backdropTap: { flex: 1 },
@@ -230,6 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     gap: 22,
+    maxHeight: "92%",
   },
   handle: {
     width: 36,
@@ -248,6 +452,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.4,
+  },
+  scrollContent: {
+    gap: 22,
+    paddingBottom: 2,
   },
   section: { gap: 12 },
   sectionLabel: {
@@ -291,6 +499,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  wrapSegments: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   segment: {
     flex: 1,
     paddingVertical: 12,
@@ -301,6 +514,53 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
+  chipText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  heightCard: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+    gap: 14,
+  },
+  heightStepper: {
+    gap: 8,
+  },
+  heightLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+  heightControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heightButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heightValue: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  heightDivider: {
+    height: StyleSheet.hairlineWidth,
   },
   saveBtn: {
     paddingVertical: 16,

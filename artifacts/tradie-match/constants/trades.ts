@@ -13,7 +13,13 @@ export type TradeKey =
   | "glazier"
   | "plasterer"
   | "hvac"
-  | "builder";
+  | "builder"
+  | "engineer"
+  | "accountant"
+  | "lawyer"
+  | "designer"
+  | "marketer"
+  | "consultant";
 
 export type Trade = {
   key: TradeKey;
@@ -38,6 +44,12 @@ export const TRADES: Trade[] = [
   { key: "glazier", name: "Glazier", nickname: "Glazier", color: "#0EA5E9" },
   { key: "plasterer", name: "Plasterer", nickname: "Plasterer", color: "#C49A6C" },
   { key: "hvac", name: "HVAC Tech", nickname: "Aircon", color: "#06B6D4" },
+  { key: "engineer", name: "Engineer", nickname: "Engineer", color: "#1D4ED8" },
+  { key: "accountant", name: "Accountant", nickname: "Accountant", color: "#047857" },
+  { key: "lawyer", name: "Lawyer", nickname: "Lawyer", color: "#6D28D9" },
+  { key: "designer", name: "Designer", nickname: "Designer", color: "#DB2777" },
+  { key: "marketer", name: "Marketer", nickname: "Marketing", color: "#DC2626" },
+  { key: "consultant", name: "Consultant", nickname: "Consultant", color: "#334155" },
 ];
 
 export function getTrade(key: TradeKey): Trade {

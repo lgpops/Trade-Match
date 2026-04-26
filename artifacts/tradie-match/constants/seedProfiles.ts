@@ -1,4 +1,5 @@
 import type { TradeKey } from "./trades";
+import type { CollarType, Ethnicity } from "./demographics";
 
 export type Gender = "male" | "female";
 
@@ -7,6 +8,9 @@ export type SeedProfile = {
   name: string;
   age: number;
   gender: Gender;
+  collarType: CollarType;
+  ethnicity: Ethnicity;
+  heightCm: number;
   trade: TradeKey;
   yearsOnTools: number;
   suburb: string;
@@ -24,6 +28,9 @@ export const SEED_PROFILES: SeedProfile[] = [
     name: "Jack",
     age: 31,
     gender: "male",
+    collarType: "blue",
+    ethnicity: "white",
+    heightCm: 183,
     trade: "carpenter",
     yearsOnTools: 12,
     suburb: "Marrickville",
@@ -39,6 +46,9 @@ export const SEED_PROFILES: SeedProfile[] = [
     name: "Mia",
     age: 28,
     gender: "female",
+    collarType: "blue",
+    ethnicity: "asian",
+    heightCm: 168,
     trade: "electrician",
     yearsOnTools: 7,
     suburb: "Brunswick",
@@ -54,6 +64,9 @@ export const SEED_PROFILES: SeedProfile[] = [
     name: "Tommo",
     age: 34,
     gender: "male",
+    collarType: "blue",
+    ethnicity: "pacificIslander",
+    heightCm: 188,
     trade: "plumber",
     yearsOnTools: 15,
     suburb: "Bondi",
@@ -69,6 +82,9 @@ export const SEED_PROFILES: SeedProfile[] = [
     name: "Sienna",
     age: 27,
     gender: "female",
+    collarType: "blue",
+    ethnicity: "latino",
+    heightCm: 171,
     trade: "painter",
     yearsOnTools: 6,
     suburb: "West End",
@@ -84,6 +100,9 @@ export const SEED_PROFILES: SeedProfile[] = [
     name: "Dave",
     age: 30,
     gender: "male",
+    collarType: "blue",
+    ethnicity: "mixed",
+    heightCm: 176,
     trade: "landscaper",
     yearsOnTools: 9,
     suburb: "Newtown",
@@ -93,5 +112,59 @@ export const SEED_PROFILES: SeedProfile[] = [
     weekendMove: "Trail run with the dog",
     brewOfChoice: "Kombucha, controversial I know",
     photo: require("../assets/images/profile5.png"),
+  },
+  {
+    id: "p6",
+    name: "Priya",
+    age: 32,
+    gender: "female",
+    collarType: "white",
+    ethnicity: "southAsian",
+    heightCm: 165,
+    trade: "consultant",
+    yearsOnTools: 9,
+    suburb: "Surry Hills",
+    distanceKm: 7,
+    bio: "Construction project consultant who swaps site meetings for rooftop dinners. Equal parts spreadsheets, site boots and passport stamps.",
+    rig: "Company EV, always at 80%",
+    weekendMove: "Gallery hop then a wine bar",
+    brewOfChoice: "Flat white, extra hot",
+    photo: require("../assets/images/profile2.png"),
+  },
+  {
+    id: "p7",
+    name: "Ethan",
+    age: 36,
+    gender: "male",
+    collarType: "white",
+    ethnicity: "black",
+    heightCm: 191,
+    trade: "engineer",
+    yearsOnTools: 13,
+    suburb: "Southbank",
+    distanceKm: 8,
+    bio: "Structural engineer, decent cook, terrible golfer. I like people who can talk shop for five minutes then switch off for the rest of the night.",
+    rig: "Road bike and a very tidy sedan",
+    weekendMove: "Long lunch after a morning ride",
+    brewOfChoice: "Single origin batch brew",
+    photo: require("../assets/images/profile3.png"),
+  },
+  {
+    id: "p8",
+    name: "Grace",
+    age: 29,
+    gender: "female",
+    collarType: "white",
+    ethnicity: "white",
+    heightCm: 174,
+    trade: "designer",
+    yearsOnTools: 8,
+    suburb: "Paddington",
+    distanceKm: 5,
+    bio: "Interior designer with a soft spot for heritage homes and people who mean what they say. Weekends are markets, swims and dinner with mates.",
+    rig: "Mini Cooper with too many sample books",
+    weekendMove: "Ocean pool before breakfast",
+    brewOfChoice: "Piccolo",
+    photo: require("../assets/images/profile4.png"),
   },
 ];

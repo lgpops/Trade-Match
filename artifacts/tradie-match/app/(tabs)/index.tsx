@@ -29,7 +29,7 @@ export default function DiscoverScreen() {
   const [filtersVisible, setFiltersVisible] = useState(false);
 
   const isMates = user?.mode === "mates";
-  const tagline = isMates ? "Find your crew." : "Knock off, hook up.";
+  const tagline = isMates ? "Blue, white, and red-hot crews." : "Blue collar. White collar. Red-hot matches.";
 
   const topProfile = profiles[0];
 
@@ -69,7 +69,7 @@ export default function DiscoverScreen() {
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View>
           <Text style={[styles.brandSmall, { color: colors.mutedForeground }]}>
-            TRADIE MATCH
+            RED COLLAR
           </Text>
           <Text style={[styles.brand, { color: colors.foreground }]}>
             {tagline}
