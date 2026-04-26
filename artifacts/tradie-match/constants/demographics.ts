@@ -27,8 +27,8 @@ export const COLLAR_OPTIONS: { value: CollarType; label: string; sub: string }[]
   },
   {
     value: "other",
-    label: "Other",
-    sub: "Artists, athletes, founders, performers and anything else",
+    label: "Red Collar",
+    sub: "Just looking for love, with any job title you choose",
   },
 ];
 
@@ -39,7 +39,7 @@ export const COLLAR_FILTER_OPTIONS: {
   { value: "everyone", label: "All" },
   { value: "blue", label: "Blue" },
   { value: "white", label: "White" },
-  { value: "other", label: "Other" },
+  { value: "other", label: "Red" },
 ];
 
 export const ETHNICITY_OPTIONS: { value: Ethnicity; label: string }[] = [

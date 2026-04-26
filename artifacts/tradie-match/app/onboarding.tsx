@@ -751,7 +751,7 @@ function Step1({
       <Heading
         eyebrow="STEP 2 OF 5"
         title="What's your collar?"
-        sub="Red Collar is for blue-collar and white-collar people. Pick what fits your work."
+        sub="Pick blue, white, or Red Collar if you're just looking for love."
         colors={colors}
       />
       <Field label="Collar type">
