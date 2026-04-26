@@ -35,10 +35,7 @@ export type DiscoveryFilters = {
 export type UserMedia = {
   id: string;
   uri: string;
-  type: "image" | "video";
-  durationMs?: number;
-  trimStartMs?: number;
-  trimEndMs?: number;
+  type: "image";
 };
 
 export type UserProfile = {

@@ -17,7 +17,7 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Red Collar uses your location to suggest your region during onboarding.",
-        "NSPhotoLibraryUsageDescription": "Red Collar lets you choose profile photos and videos from your library."
+        "NSPhotoLibraryUsageDescription": "Red Collar lets you choose profile photos from your library."
       }
     },
     "android": {
@@ -40,7 +40,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Red Collar lets you choose profile photos and videos from your library."
+          "photosPermission": "Red Collar lets you choose profile photos from your library."
         }
       ],
       "expo-web-browser"

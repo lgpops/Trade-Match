@@ -30,22 +30,7 @@ import { useApp } from "@/context/AppContext";
 import type { UserMedia, UserProfile } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-const MAX_EXTRA_MEDIA = 4;
-const MAX_VIDEO_SEGMENT_MS = 45_000;
-
-type PendingVideo = {
-  id: string;
-  uri: string;
-  durationMs: number;
-  trimStartMs: number;
-};
-
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.max(0, Math.round(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
+const MAX_EXTRA_MEDIA = 5;
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -160,7 +145,7 @@ export default function ProfileScreen() {
         {user.media.length > 0 ? (
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              PHOTOS & VIDEOS
+              PHOTOS
             </Text>
             <ScrollView
               horizontal
@@ -169,20 +154,11 @@ export default function ProfileScreen() {
             >
               {user.media.map((item) => (
                 <View key={item.id} style={styles.mediaTile}>
-                  {item.type === "video" ? (
-                    <View style={[styles.mediaVideo, { backgroundColor: colors.secondary }]}>
-                      <Feather name="play-circle" size={30} color={colors.primary} />
-                      <Text style={[styles.mediaVideoText, { color: colors.foreground }]}>
-                        Video
-                      </Text>
-                    </View>
-                  ) : (
-                    <Image
-                      source={{ uri: item.uri }}
-                      style={styles.mediaImage}
-                      contentFit="cover"
-                    />
-                  )}
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={styles.mediaImage}
+                    contentFit="cover"
+                  />
                 </View>
               ))}
             </ScrollView>
@@ -304,30 +280,27 @@ function EditProfileModal({
   };
 
   const addMedia = async () => {
-    if (draft.media.length >= 4) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
-      quality: 0.85,
-      videoMaxDuration: 45,
-    });
-    if (result.canceled) return;
-    const nextItems: UserMedia[] = [];
-    for (const asset of result.assets) {
-      if (nextItems.length + draft.media.length >= 4) break;
-      const durationMs = asset.duration ?? 0;
-      if (asset.type === "video" && durationMs > 45_000) {
-        Alert.alert("Video too long", "Please choose a video that is 45 seconds or shorter.");
-        continue;
-      }
-      nextItems.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        uri: asset.uri,
-        type: asset.type === "video" ? "video" : "image",
-        durationMs: asset.type === "video" ? durationMs : undefined,
+    if (draft.media.length >= MAX_EXTRA_MEDIA) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.85,
+        allowsMultipleSelection: true,
+        selectionLimit: MAX_EXTRA_MEDIA - draft.media.length,
       });
-    }
-    if (nextItems.length > 0) {
-      setField("media", [...draft.media, ...nextItems]);
+      if (result.canceled) return;
+      const nextItems: UserMedia[] = result.assets
+        .slice(0, MAX_EXTRA_MEDIA - draft.media.length)
+        .map((asset) => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          uri: asset.uri,
+          type: "image",
+        }));
+      if (nextItems.length > 0) {
+        setField("media", [...draft.media, ...nextItems]);
+      }
+    } catch {
+      Alert.alert("Could not open photos", "Please try selecting photos again.");
     }
   };
 
@@ -336,7 +309,14 @@ function EditProfileModal({
   };
 
   const save = async () => {
-    if (!draft.name.trim() || !draft.region.trim() || !draft.bio.trim()) return;
+    if (
+      !draft.name.trim() ||
+      !draft.region.trim() ||
+      !draft.bio.trim() ||
+      !draft.profilePhotoUri
+    ) {
+      return;
+    }
     setSaving(true);
     try {
       await onSave({
@@ -433,13 +413,9 @@ function EditProfileModal({
                       Choose profile photo
                     </Text>
                   </Pressable>
-                  {draft.profilePhotoUri ? (
-                    <Pressable onPress={() => setField("profilePhotoUri", undefined)}>
-                      <Text style={[styles.mediaRemoveText, { color: colors.destructive }]}>
-                        Remove photo
-                      </Text>
-                    </Pressable>
-                  ) : null}
+                  <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>
+                    Required
+                  </Text>
                 </View>
               </View>
             </EditField>
@@ -474,9 +450,9 @@ function EditProfileModal({
                 multiline
               />
             </EditField>
-            <EditField label="Photos & videos">
+            <EditField label="Additional photos">
               <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>
-                Add up to 4 extra photos or videos. Videos must be 45 seconds or shorter.
+                Add up to 5 extra photos.
               </Text>
               <View style={styles.mediaEditGrid}>
                 {draft.media.map((item) => (
@@ -487,20 +463,11 @@ function EditProfileModal({
                       { backgroundColor: colors.card, borderColor: colors.border },
                     ]}
                   >
-                    {item.type === "image" ? (
-                      <Image
-                        source={{ uri: item.uri }}
-                        style={styles.mediaEditImage}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View style={styles.mediaEditVideo}>
-                        <Feather name="play-circle" size={28} color={colors.primary} />
-                        <Text style={[styles.mediaEditVideoText, { color: colors.foreground }]}>
-                          Video
-                        </Text>
-                      </View>
-                    )}
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={styles.mediaEditImage}
+                      contentFit="cover"
+                    />
                     <Pressable
                       onPress={() => removeMedia(item.id)}
                       style={styles.removeMediaBtn}
@@ -509,7 +476,7 @@ function EditProfileModal({
                     </Pressable>
                   </View>
                 ))}
-                {draft.media.length < 4 ? (
+                {draft.media.length < MAX_EXTRA_MEDIA ? (
                   <Pressable
                     onPress={addMedia}
                     style={({ pressed }) => [
@@ -759,16 +726,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  mediaVideo: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  mediaVideoText: {
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-  },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -886,16 +843,6 @@ const styles = StyleSheet.create({
   mediaEditImage: {
     width: "100%",
     height: "100%",
-  },
-  mediaEditVideo: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  mediaEditVideoText: {
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
   },
   removeMediaBtn: {
     position: "absolute",
