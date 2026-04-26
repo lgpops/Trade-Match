@@ -17,12 +17,13 @@ import { TradeBadge } from "@/components/TradeBadge";
 import {
   COLLAR_OPTIONS,
   ETHNICITY_OPTIONS,
+  cmToFeetInches,
   formatHeight,
   type CollarType,
   type Ethnicity,
 } from "@/constants/demographics";
 import type { Gender } from "@/constants/seedProfiles";
-import { TRADES, type TradeKey } from "@/constants/trades";
+import { getTradesForCollar, isTradeForCollar, type TradeKey } from "@/constants/trades";
 import {
   DEFAULT_DISCOVERY_FILTERS,
   useApp,
@@ -54,7 +55,7 @@ const MODE_OPTIONS: {
   {
     value: "mates",
     label: "Mateship",
-    sub: "After mates on the tools",
+    sub: "After mates across blue or white collar work",
     icon: "users",
   },
 ];
@@ -79,8 +80,9 @@ export default function Onboarding() {
   const [ethnicity, setEthnicity] = useState<Ethnicity | null>(null);
   const [heightCm, setHeightCm] = useState("175");
   const [collarType, setCollarType] = useState<CollarType>("blue");
-  const [suburb, setSuburb] = useState("");
+  const [region, setRegion] = useState("");
   const [trade, setTrade] = useState<TradeKey | null>(null);
+  const [customJobTitle, setCustomJobTitle] = useState("");
   const [years, setYears] = useState("");
   const [mode, setMode] = useState<Mode>("dating");
   const [showMe, setShowMe] = useState<ShowMe>("everyone");
@@ -99,7 +101,14 @@ export default function Onboarding() {
         Number(heightCm) >= 140
       );
     }
-    if (step === 1) return !!trade && Number(years) >= 0 && suburb.trim().length > 0;
+    if (step === 1) {
+      return (
+        !!trade &&
+        Number(years) >= 0 &&
+        region.trim().length > 0 &&
+        (trade !== "other" || customJobTitle.trim().length > 0)
+      );
+    }
     if (step === 2) return !!mode && !!showMe;
     if (step === 3) return bio.trim().length >= 10;
     return true;
@@ -112,7 +121,8 @@ export default function Onboarding() {
     heightCm,
     trade,
     years,
-    suburb,
+    region,
+    customJobTitle,
     mode,
     showMe,
     bio,
@@ -132,8 +142,9 @@ export default function Onboarding() {
       ethnicity,
       heightCm: Number(heightCm),
       trade,
+      customJobTitle: trade === "other" ? customJobTitle.trim() : undefined,
       yearsOnTools: Number(years || 0),
-      suburb: suburb.trim(),
+      region: region.trim(),
       bio: bio.trim(),
       rig: rig.trim() || "Just the work van",
       weekendMove: weekendMove.trim() || "Down at the local",
@@ -211,11 +222,19 @@ export default function Onboarding() {
               trade={trade}
               setTrade={setTrade}
               collarType={collarType}
-              setCollarType={setCollarType}
+              setCollarType={(nextCollar) => {
+                setCollarType(nextCollar);
+                if (trade && !isTradeForCollar(trade, nextCollar)) {
+                  setTrade(null);
+                  setCustomJobTitle("");
+                }
+              }}
+              customJobTitle={customJobTitle}
+              setCustomJobTitle={setCustomJobTitle}
               years={years}
               setYears={setYears}
-              suburb={suburb}
-              setSuburb={setSuburb}
+              region={region}
+              setRegion={setRegion}
             />
           )}
           {step === 2 && (
@@ -269,7 +288,7 @@ export default function Onboarding() {
               { color: canContinue ? "#FFFFFF" : colors.mutedForeground },
             ]}
           >
-            {step === 4 ? "Get on the tools" : "Continue"}
+            {step === 4 ? "Start matching" : "Continue"}
           </Text>
           <Feather
             name="arrow-right"
@@ -365,6 +384,8 @@ function Step0({
   heightCm: string;
   setHeightCm: (s: string) => void;
 }) {
+  const parsedHeight = Number(heightCm);
+  const { feet, inches } = cmToFeetInches(Number.isFinite(parsedHeight) ? parsedHeight : 0);
   return (
     <View style={{ gap: 18 }}>
       <Heading
@@ -462,9 +483,12 @@ function Step0({
             style={styles.heightInput}
           />
           <Text style={[styles.heightPreview, { color: colors.mutedForeground }]}>
-            {formatHeight(Number(heightCm))}
+            {formatHeight(parsedHeight)}
           </Text>
         </View>
+        <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+          Equivalent to {feet} ft {inches} in.
+        </Text>
       </Field>
     </View>
   );
@@ -476,21 +500,26 @@ function Step1({
   setTrade,
   collarType,
   setCollarType,
+  customJobTitle,
+  setCustomJobTitle,
   years,
   setYears,
-  suburb,
-  setSuburb,
+  region,
+  setRegion,
 }: {
   colors: ReturnType<typeof useColors>;
   trade: TradeKey | null;
   setTrade: (t: TradeKey) => void;
   collarType: CollarType;
   setCollarType: (c: CollarType) => void;
+  customJobTitle: string;
+  setCustomJobTitle: (s: string) => void;
   years: string;
   setYears: (s: string) => void;
-  suburb: string;
-  setSuburb: (s: string) => void;
+  region: string;
+  setRegion: (s: string) => void;
 }) {
+  const tradeOptions = getTradesForCollar(collarType);
   return (
     <View style={{ gap: 18 }}>
       <Heading
@@ -560,7 +589,7 @@ function Step1({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, paddingRight: 12 }}
         >
-          {TRADES.map((t) => {
+          {tradeOptions.map((t) => {
             const selected = t.key === trade;
             return (
               <Pressable
@@ -590,10 +619,25 @@ function Step1({
       </Field>
       {trade && (
         <View style={{ alignItems: "flex-start", marginTop: -4 }}>
-          <TradeBadge trade={trade} size="md" />
+          <TradeBadge
+            job={trade}
+            customJobTitle={trade === "other" ? customJobTitle || "Other" : undefined}
+            size="md"
+          />
         </View>
       )}
-      <Field label="Years on the tools">
+      {trade === "other" && (
+        <Field label="Your job title">
+          <Input
+            value={customJobTitle}
+            onChangeText={setCustomJobTitle}
+            placeholder={collarType === "blue" ? "Scaffolder" : "Product manager"}
+            autoCapitalize="words"
+            maxLength={40}
+          />
+        </Field>
+      )}
+      <Field label="Years experience">
         <Input
           value={years}
           onChangeText={(t) => setYears(t.replace(/[^0-9]/g, "").slice(0, 2))}
@@ -602,11 +646,11 @@ function Step1({
           maxLength={2}
         />
       </Field>
-      <Field label="Suburb">
+      <Field label="Region">
         <Input
-          value={suburb}
-          onChangeText={setSuburb}
-          placeholder="Marrickville"
+          value={region}
+          onChangeText={setRegion}
+          placeholder="Inner West"
           autoCapitalize="words"
         />
       </Field>
@@ -939,6 +983,10 @@ const styles = StyleSheet.create({
   heightPreview: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
+  },
+  fieldHint: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
   },
   modeCard: {
     flexDirection: "row",

@@ -94,7 +94,11 @@ export default function MatchesScreen() {
                     <Text style={styles.newName} numberOfLines={1}>
                       {item.profile.name}
                     </Text>
-                    <TradeBadge trade={item.profile.trade} size="sm" />
+                    <TradeBadge
+                      job={item.profile.trade}
+                      customJobTitle={item.profile.customJobTitle}
+                      size="sm"
+                    />
                   </View>
                 </Pressable>
               )}
@@ -183,7 +187,11 @@ function ConversationRow({
           <Text style={[styles.rowName, { color: colors.foreground }]}>
             {match.profile.name}
           </Text>
-          <TradeBadge trade={match.profile.trade} size="sm" />
+          <TradeBadge
+            job={match.profile.trade}
+            customJobTitle={match.profile.customJobTitle}
+            size="sm"
+          />
         </View>
         <Text
           style={[

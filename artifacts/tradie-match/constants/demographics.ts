@@ -76,7 +76,26 @@ export function formatEthnicity(ethnicity: Ethnicity): string {
 
 export function formatHeight(cm: number | undefined): string {
   if (!cm) return "Height not set";
-  return `${cm} cm`;
+  return `${cm} cm / ${formatHeightImperial(cm)}`;
+}
+
+export function formatHeightImperial(cm: number): string {
+  const totalInches = Math.round(cm / 2.54);
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  return `${feet}'${inches}"`;
+}
+
+export function cmToFeetInches(cm: number): { feet: number; inches: number } {
+  const totalInches = Math.round(cm / 2.54);
+  return {
+    feet: Math.floor(totalInches / 12),
+    inches: totalInches % 12,
+  };
+}
+
+export function formatHeightRange(minHeightCm: number, maxHeightCm: number): string {
+  return `${formatHeight(minHeightCm)} - ${formatHeight(maxHeightCm)}`;
 }
 
 export function isHeightWithinPreference(

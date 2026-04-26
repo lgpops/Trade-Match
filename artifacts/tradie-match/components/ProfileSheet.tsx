@@ -19,7 +19,7 @@ import {
   formatHeight,
 } from "@/constants/demographics";
 import type { SeedProfile } from "@/constants/seedProfiles";
-import { getTrade } from "@/constants/trades";
+import { getTrade, getTradeLabel } from "@/constants/trades";
 import { useColors } from "@/hooks/useColors";
 
 type Props = {
@@ -69,7 +69,11 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
               </Pressable>
               <View style={styles.heroInfo}>
                 <View style={styles.row}>
-                  <TradeBadge trade={profile.trade} size="lg" />
+                  <TradeBadge
+                    job={profile.trade}
+                    customJobTitle={profile.customJobTitle}
+                    size="lg"
+                  />
                   <View style={styles.distance}>
                     <Feather name="map-pin" size={13} color="#FFFFFF" />
                     <Text style={styles.distanceText}>{profile.distanceKm} km</Text>
@@ -79,7 +83,7 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
                   {profile.name}, {profile.age}
                 </Text>
                 <Text style={styles.heroSub}>
-                  {formatCollarType(profile.collarType)} · {profile.suburb}
+                  {formatCollarType(profile.collarType)} · {profile.region}
                 </Text>
               </View>
               <View style={[styles.tradeStripe, { backgroundColor: trade.color }]} />
@@ -90,6 +94,14 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
                 {profile.bio}
               </Text>
 
+              <Detail
+                icon={profile.collarType === "blue" ? "tool" : "briefcase"}
+                label="Job title"
+                value={getTradeLabel(profile.trade, profile.customJobTitle)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
               <Detail
                 icon={profile.collarType === "blue" ? "tool" : "briefcase"}
                 label="Collar"

@@ -42,8 +42,9 @@ export type UserProfile = {
   ethnicity: Ethnicity;
   heightCm: number;
   trade: TradeKey;
+  customJobTitle?: string;
   yearsOnTools: number;
-  suburb: string;
+  region: string;
   bio: string;
   rig: string;
   weekendMove: string;
@@ -130,12 +131,19 @@ export const DEFAULT_DISCOVERY_FILTERS: DiscoveryFilters = {
   maxHeightCm: DEFAULT_MAX_HEIGHT_CM,
 };
 
-function hydrateUser(user: Partial<UserProfile> & UserProfile): UserProfile {
+type StoredUserProfile = Partial<UserProfile> &
+  Omit<UserProfile, "region"> & {
+    suburb?: string;
+    region?: string;
+  };
+
+function hydrateUser(user: StoredUserProfile): UserProfile {
   return {
     ...user,
     collarType: user.collarType ?? "blue",
     ethnicity: user.ethnicity ?? "other",
     heightCm: user.heightCm ?? 175,
+    region: user.region ?? user.suburb ?? "",
     filters: {
       ...DEFAULT_DISCOVERY_FILTERS,
       ...(user.filters ?? {}),

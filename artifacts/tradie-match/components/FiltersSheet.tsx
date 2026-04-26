@@ -15,6 +15,7 @@ import {
   DEFAULT_MAX_HEIGHT_CM,
   DEFAULT_MIN_HEIGHT_CM,
   ETHNICITY_FILTER_OPTIONS,
+  formatHeightRange,
   formatHeight,
   type CollarPreference,
   type EthnicityPreference,
@@ -47,7 +48,7 @@ const MODE_OPTIONS: {
   {
     value: "mates",
     label: "Mateship",
-    sub: "After mates on the tools",
+    sub: "After mates across work and life",
     icon: "users",
   },
 ];
@@ -227,7 +228,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
               </View>
             </View>
 
-            <View style={styles.section}>
+            <View style={styles.filterCard}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 SHOW ME
               </Text>
@@ -246,7 +247,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
               </View>
             </View>
 
-            <View style={styles.section}>
+            <View style={styles.filterCard}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 COLLAR TYPE
               </Text>
@@ -262,7 +263,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
               </View>
             </View>
 
-            <View style={styles.section}>
+            <View style={styles.filterCard}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 ETHNICITY
               </Text>
@@ -278,9 +279,12 @@ export function FiltersSheet({ visible, onClose }: Props) {
               </View>
             </View>
 
-            <View style={styles.section}>
+            <View style={styles.filterCard}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 HEIGHT
+              </Text>
+              <Text style={[styles.filterSummary, { color: colors.foreground }]}>
+                {formatHeightRange(minHeightCm, maxHeightCm)}
               </Text>
               <View style={[styles.heightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <HeightStepper
@@ -458,6 +462,14 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   section: { gap: 12 },
+  filterCard: {
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(215,38,56,0.18)",
+    backgroundColor: "rgba(255,255,255,0.58)",
+    padding: 14,
+  },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
@@ -524,6 +536,10 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
+  },
+  filterSummary: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
   },
   heightCard: {
     borderWidth: 1.5,

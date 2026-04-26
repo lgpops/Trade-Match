@@ -12,15 +12,15 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { TradeBadge } from "@/components/TradeBadge";
-import { useApp } from "@/context/AppContext";
-import { useColors } from "@/hooks/useColors";
-import { getTrade } from "@/constants/trades";
 import {
   formatCollarType,
   formatEthnicity,
   formatHeight,
 } from "@/constants/demographics";
+import { getTrade } from "@/constants/trades";
+import { TradeBadge } from "@/components/TradeBadge";
+import { useApp } from "@/context/AppContext";
+import { useColors } from "@/hooks/useColors";
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -83,12 +83,12 @@ export default function ProfileScreen() {
             {user.name}, {user.age}
           </Text>
           <View style={{ marginTop: 8 }}>
-            <TradeBadge trade={user.trade} size="lg" />
+            <TradeBadge job={user.trade} customJobTitle={user.customJobTitle} size="lg" />
           </View>
-          <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
-            {user.suburb} · {formatCollarType(user.collarType)}
+          <Text style={[styles.region, { color: colors.mutedForeground }]}>
+            {user.region} · {formatCollarType(user.collarType)}
           </Text>
-          <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
+          <Text style={[styles.region, { color: colors.mutedForeground }]}>
             {user.yearsOnTools} yrs experience · {formatHeight(user.heightCm)}
           </Text>
         </LinearGradient>
@@ -117,6 +117,12 @@ export default function ProfileScreen() {
             icon="briefcase"
             label="Collar type"
             value={formatCollarType(user.collarType)}
+            colors={colors}
+          />
+          <DetailRow
+            icon="briefcase"
+            label="Job title"
+            value={user.customJobTitle ?? trade.name}
             colors={colors}
           />
           <DetailRow
@@ -244,7 +250,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginTop: 14,
   },
-  suburb: {
+  region: {
     fontSize: 13,
     fontFamily: "Inter_500Medium",
     marginTop: 8,

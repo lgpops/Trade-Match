@@ -12,8 +12,9 @@ export type SeedProfile = {
   ethnicity: Ethnicity;
   heightCm: number;
   trade: TradeKey;
+  customJobTitle?: string;
   yearsOnTools: number;
-  suburb: string;
+  region: string;
   distanceKm: number;
   bio: string;
   rig: string;
@@ -33,7 +34,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 183,
     trade: "carpenter",
     yearsOnTools: 12,
-    suburb: "Marrickville",
+    region: "Marrickville",
     distanceKm: 4,
     bio: "Custom decks and pergolas by day, smoking brisket on weekends. Looking for someone who's keen on weekend road trips and doesn't mind sawdust on the couch.",
     rig: "HiLux dual cab, cream",
@@ -51,7 +52,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 168,
     trade: "electrician",
     yearsOnTools: 7,
-    suburb: "Brunswick",
+    region: "Brunswick",
     distanceKm: 6,
     bio: "Domestic and commercial sparky. Run my own small crew. I know my way around a dance floor as well as a switchboard. Bonus points if you cook.",
     rig: "White Transit, kitted out",
@@ -69,7 +70,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 188,
     trade: "plumber",
     yearsOnTools: 15,
-    suburb: "Bondi",
+    region: "Bondi",
     distanceKm: 9,
     bio: "Maintenance plumber, on call most weeks but I make weekends count. Fishing tinny on Pittwater. Two kelpies. Looking for the real deal.",
     rig: "Iveco van, blue",
@@ -87,7 +88,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 171,
     trade: "painter",
     yearsOnTools: 6,
-    suburb: "West End",
+    region: "West End",
     distanceKm: 3,
     bio: "Heritage interiors and a soft spot for a moody charcoal feature wall. Pottery class on Tuesdays. Will judge your colour palette but kindly.",
     rig: "Old Mazda ute, charcoal",
@@ -105,7 +106,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 176,
     trade: "landscaper",
     yearsOnTools: 9,
-    suburb: "Newtown",
+    region: "Newtown",
     distanceKm: 5,
     bio: "Native gardens and dry stone walls. Outside whenever I can be. Camping in the Blue Mountains most long weekends. Bring your own swag.",
     rig: "Tipper truck and a trailer full of mulch",
@@ -123,7 +124,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 165,
     trade: "consultant",
     yearsOnTools: 9,
-    suburb: "Surry Hills",
+    region: "Surry Hills",
     distanceKm: 7,
     bio: "Construction project consultant who swaps site meetings for rooftop dinners. Equal parts spreadsheets, site boots and passport stamps.",
     rig: "Company EV, always at 80%",
@@ -141,7 +142,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 191,
     trade: "engineer",
     yearsOnTools: 13,
-    suburb: "Southbank",
+    region: "Southbank",
     distanceKm: 8,
     bio: "Structural engineer, decent cook, terrible golfer. I like people who can talk shop for five minutes then switch off for the rest of the night.",
     rig: "Road bike and a very tidy sedan",
@@ -159,7 +160,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     heightCm: 174,
     trade: "designer",
     yearsOnTools: 8,
-    suburb: "Paddington",
+    region: "Paddington",
     distanceKm: 5,
     bio: "Interior designer with a soft spot for heritage homes and people who mean what they say. Weekends are markets, swims and dinner with mates.",
     rig: "Mini Cooper with too many sample books",

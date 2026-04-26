@@ -134,7 +134,7 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
 
       <View style={styles.info}>
         <View style={styles.row}>
-          <TradeBadge trade={profile.trade} size="md" />
+          <TradeBadge job={profile.trade} customJobTitle={profile.customJobTitle} size="md" />
           <View style={styles.distance}>
             <Feather name="map-pin" size={12} color="#FFFFFF" />
             <Text style={styles.distanceText}>{profile.distanceKm} km</Text>
@@ -147,7 +147,7 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
           {formatCollarType(profile.collarType)} · {formatHeight(profile.heightCm)}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {profile.yearsOnTools} yrs experience · {profile.suburb}
+          {profile.yearsOnTools} yrs experience · {profile.region}
         </Text>
         <Text style={styles.bio} numberOfLines={2}>
           {profile.bio}

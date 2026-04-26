@@ -28,9 +28,6 @@ export default function DiscoverScreen() {
   const [previewProfile, setPreviewProfile] = useState<SeedProfile | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
 
-  const isMates = user?.mode === "mates";
-  const tagline = isMates ? "Blue, white, and red-hot crews." : "Blue collar. White collar. Red-hot matches.";
-
   const topProfile = profiles[0];
 
   const handleSwipe = (dir: "left" | "right") => {
@@ -67,14 +64,9 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
-        <View>
-          <Text style={[styles.brandSmall, { color: colors.mutedForeground }]}>
-            RED COLLAR
-          </Text>
-          <Text style={[styles.brand, { color: colors.foreground }]}>
-            {tagline}
-          </Text>
-        </View>
+        <Text style={[styles.brand, { color: colors.foreground }]}>
+          Red Collar
+        </Text>
         <Pressable
           style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
           onPress={() => setFiltersVisible(true)}
@@ -195,16 +187,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 16,
   },
-  brandSmall: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 2,
-  },
   brand: {
-    fontSize: 26,
+    fontSize: 32,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
-    marginTop: 2,
   },
   iconBtn: {
     width: 40,
