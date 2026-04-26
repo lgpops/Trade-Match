@@ -13,9 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TradeBadge } from "@/components/TradeBadge";
-import { useApp } from "@/context/AppContext";
+import { useApp, type CollarType } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { getTrade } from "@/constants/trades";
+
+const COLLAR_LABELS: Record<CollarType, string> = {
+  blue: "Blue collar",
+  white: "White collar",
+};
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -81,7 +86,8 @@ export default function ProfileScreen() {
             <TradeBadge trade={user.trade} size="lg" />
           </View>
           <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
-            {user.suburb} · {user.yearsOnTools} yrs on the tools
+            {COLLAR_LABELS[user.collarType]} · {user.suburb} ·{" "}
+            {user.yearsOnTools} yrs on the tools
           </Text>
         </LinearGradient>
 

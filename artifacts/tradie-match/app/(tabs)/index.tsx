@@ -69,7 +69,7 @@ export default function DiscoverScreen() {
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
         <View>
           <Text style={[styles.brandSmall, { color: colors.mutedForeground }]}>
-            TRADIE MATCH
+            RED COLLAR
           </Text>
           <Text style={[styles.brand, { color: colors.foreground }]}>
             {tagline}

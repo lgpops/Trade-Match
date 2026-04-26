@@ -17,11 +17,13 @@ import type { TradeKey } from "@/constants/trades";
 
 export type Mode = "dating" | "mates";
 export type ShowMe = "men" | "women" | "everyone";
+export type CollarType = "blue" | "white";
 
 export type UserProfile = {
   name: string;
   age: number;
   gender: Gender;
+  collarType: CollarType;
   trade: TradeKey;
   yearsOnTools: number;
   suburb: string;
@@ -119,7 +121,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(STORAGE_KEYS.matches),
           AsyncStorage.getItem(STORAGE_KEYS.messages),
         ]);
-        if (u) setUser(JSON.parse(u));
+        if (u) {
+          const parsed = JSON.parse(u) as UserProfile;
+          setUser({ ...parsed, collarType: parsed.collarType ?? "blue" });
+        }
         if (d) setDecisions(JSON.parse(d));
         if (m) {
           const parsed: Match[] = JSON.parse(m);
