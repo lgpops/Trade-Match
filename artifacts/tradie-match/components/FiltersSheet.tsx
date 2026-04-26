@@ -75,7 +75,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
       onRequestClose={onClose}
     >
       <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable style={styles.backdropTap} onPress={onClose} />
         <View
           style={[
             styles.sheet,
@@ -223,6 +223,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "flex-end" },
+  backdropTap: { flex: 1 },
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

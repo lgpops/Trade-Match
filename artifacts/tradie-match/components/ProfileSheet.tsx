@@ -183,7 +183,7 @@ function Detail({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "flex-end" },
-  backdropPressable: { ...StyleSheet.absoluteFillObject },
+  backdropPressable: { flex: 1 },
   sheet: {
     height: "92%",
     borderTopLeftRadius: 28,
