@@ -1,0 +1,38 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "F5U70_75WUSkKz8erL12O"
+uri = "file://artifacts/tradie-match/assets/images/icon.png"
+type = "image"
+title = "tradie dating app icon"
+
+[[generated]]
+id = "jVQnd9fmIlGF_nYMtQf68"
+uri = "file://artifacts/tradie-match/assets/images/profile1.png"
+type = "image"
+title = "carpenter profile photo"
+
+[[generated]]
+id = "jDbJKZqBHujQXoOVXooTj"
+uri = "file://artifacts/tradie-match/assets/images/profile2.png"
+type = "image"
+title = "electrician profile photo"
+
+[[generated]]
+id = "GunYMVb_jVKWv1n47cfU3"
+uri = "file://artifacts/tradie-match/assets/images/profile3.png"
+type = "image"
+title = "plumber profile photo"
+
+[[generated]]
+id = "Su_199liI05DNRyUdc5il"
+uri = "file://artifacts/tradie-match/assets/images/profile4.png"
+type = "image"
+title = "painter profile photo"
+
+[[generated]]
+id = "N0nsF3hVUH7odpNAc4rRw"
+uri = "file://artifacts/tradie-match/assets/images/profile5.png"
+type = "image"
+title = "landscaper profile photo"

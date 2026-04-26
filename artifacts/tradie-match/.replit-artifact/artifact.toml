@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "Tradie Match"
+version = "1.0.0"
+id = "artifacts/tradie-match"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 22214
+
+[services.development]
+run = "pnpm --filter @workspace/tradie-match run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tradie-match", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/tradie-match", "run", "serve" ]
+
+[services.env]
+PORT = "22214"
+BASE_PATH = "/"
