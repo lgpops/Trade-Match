@@ -105,12 +105,26 @@ export default function Onboarding() {
 
   const canContinue = useMemo(() => {
     if (step === 0) return !!collar;
-    if (step === 1) return name.trim().length > 0 && Number(age) >= 18 && !!gender;
-    if (step === 2) return !!trade && Number(years) >= 0 && suburb.trim().length > 0;
+    if (step === 1)
+      return name.trim().length > 0 && Number(age) >= 18 && !!gender;
+    if (step === 2)
+      return !!trade && Number(years) >= 0 && suburb.trim().length > 0;
     if (step === 3) return !!mode && !!showMe;
     if (step === 4) return bio.trim().length >= 10;
     return true;
-  }, [step, collar, name, age, gender, trade, years, suburb, mode, showMe, bio]);
+  }, [
+    step,
+    collar,
+    name,
+    age,
+    gender,
+    trade,
+    years,
+    suburb,
+    mode,
+    showMe,
+    bio,
+  ]);
 
   const onNext = async () => {
     if (step < 5) {
@@ -317,10 +331,14 @@ function StepCollar({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.collarLabel, { color: colors.foreground }]}>
+                <Text
+                  style={[styles.collarLabel, { color: colors.foreground }]}
+                >
                   {opt.label}
                 </Text>
-                <Text style={[styles.collarSub, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[styles.collarSub, { color: colors.mutedForeground }]}
+                >
                   {opt.sub}
                 </Text>
               </View>
@@ -333,7 +351,9 @@ function StepCollar({
                   },
                 ]}
               >
-                {selected ? <Feather name="check" size={12} color="#FFFFFF" /> : null}
+                {selected ? (
+                  <Feather name="check" size={12} color="#FFFFFF" />
+                ) : null}
               </View>
             </Pressable>
           );
@@ -618,18 +638,12 @@ function Step2({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={[
-                      styles.modeLabel,
-                      { color: colors.foreground },
-                    ]}
+                    style={[styles.modeLabel, { color: colors.foreground }]}
                   >
                     {opt.label}
                   </Text>
                   <Text
-                    style={[
-                      styles.modeSub,
-                      { color: colors.mutedForeground },
-                    ]}
+                    style={[styles.modeSub, { color: colors.mutedForeground }]}
                   >
                     {opt.sub}
                   </Text>
@@ -639,7 +653,9 @@ function Step2({
                     styles.radio,
                     {
                       borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected ? colors.primary : "transparent",
+                      backgroundColor: selected
+                        ? colors.primary
+                        : "transparent",
                     },
                   ]}
                 >

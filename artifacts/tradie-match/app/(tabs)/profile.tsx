@@ -73,7 +73,10 @@ export default function ProfileScreen() {
             <View
               style={[
                 styles.avatar,
-                { backgroundColor: colors.card, borderColor: colors.background },
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.background,
+                },
               ]}
             >
               <Feather name="user" size={42} color={colors.mutedForeground} />
@@ -104,10 +107,14 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+          >
             ABOUT YOU
           </Text>
-          <Text style={[styles.bio, { color: colors.foreground }]}>{user.bio}</Text>
+          <Text style={[styles.bio, { color: colors.foreground }]}>
+            {user.bio}
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -160,7 +167,9 @@ function Stat({
 }) {
   return (
     <View style={styles.stat}>
-      <Text style={[styles.statValue, { color: colors.foreground }]}>{value}</Text>
+      <Text style={[styles.statValue, { color: colors.foreground }]}>
+        {value}
+      </Text>
       <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
         {label}
       </Text>
@@ -181,9 +190,7 @@ function DetailRow({
 }) {
   return (
     <View style={styles.detailRow}>
-      <View
-        style={[styles.detailIcon, { backgroundColor: colors.accent }]}
-      >
+      <View style={[styles.detailIcon, { backgroundColor: colors.accent }]}>
         <Feather name={icon} size={16} color={colors.foreground} />
       </View>
       <View style={{ flex: 1 }}>

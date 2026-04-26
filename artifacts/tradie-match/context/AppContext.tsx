@@ -61,7 +61,9 @@ type AppState = {
   matches: Match[];
   messages: Message[];
   saveUser: (user: UserProfile) => Promise<void>;
-  updatePrefs: (prefs: Partial<Pick<UserProfile, "mode" | "showMe">>) => Promise<void>;
+  updatePrefs: (
+    prefs: Partial<Pick<UserProfile, "mode" | "showMe">>,
+  ) => Promise<void>;
   resetUser: () => Promise<void>;
   decideOnProfile: (
     profileId: string,
@@ -101,7 +103,8 @@ const AUTO_REPLIES_MATES = [
   "What ute you driving these days",
 ];
 
-const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const newId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 const AppContext = createContext<AppState | null>(null);
 
@@ -131,7 +134,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const hydrated = parsed
             .map((mm) => {
               const profile = SEED_PROFILES.find((p) => p.id === mm.profile.id);
-              return profile ? { ...mm, profile, mode: mm.mode ?? "dating" } : null;
+              return profile
+                ? { ...mm, profile, mode: mm.mode ?? "dating" }
+                : null;
             })
             .filter(Boolean) as Match[];
           setMatches(hydrated);
@@ -145,16 +150,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const persistDecisions = useCallback(async (next: Record<string, Decision>) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.decisions, JSON.stringify(next));
-  }, []);
+  const persistDecisions = useCallback(
+    async (next: Record<string, Decision>) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.decisions, JSON.stringify(next));
+    },
+    [],
+  );
 
   const persistMatches = useCallback(async (next: Match[]) => {
     const serializable = next.map((m) => ({
       ...m,
       profile: { ...m.profile, photo: undefined },
     }));
-    await AsyncStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(serializable));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.matches,
+      JSON.stringify(serializable),
+    );
   }, []);
 
   const persistMessages = useCallback(async (next: Message[]) => {
@@ -206,7 +217,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             lastReadAt: 0,
             mode: user?.mode ?? "dating",
           };
-          const nextMatches = [match, ...matches.filter((m) => m.id !== profile.id)];
+          const nextMatches = [
+            match,
+            ...matches.filter((m) => m.id !== profile.id),
+          ];
           setMatches(nextMatches);
           void persistMatches(nextMatches);
           return { matched: true, profile };
