@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "F5U70_75WUSkKz8erL12O"
@@ -36,3 +35,9 @@ id = "N0nsF3hVUH7odpNAc4rRw"
 uri = "file://artifacts/tradie-match/assets/images/profile5.png"
 type = "image"
 title = "landscaper profile photo"
+
+[[outputs]]
+id = "rTLUknpDN76j1MHU_W2Vj"
+uri = "file://attached_assets/expo-qr.png"
+type = "image"
+title = "Tradie Match — Expo Go QR"
