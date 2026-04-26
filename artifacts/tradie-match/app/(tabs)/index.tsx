@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
+import { FiltersSheet } from "@/components/FiltersSheet";
 import { MatchModal } from "@/components/MatchModal";
 import { ProfileSheet } from "@/components/ProfileSheet";
 import { SwipeCard } from "@/components/SwipeCard";
@@ -21,10 +22,14 @@ import { useColors } from "@/hooks/useColors";
 export default function DiscoverScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { profiles, decideOnProfile, resetUser } = useApp();
+  const { profiles, decideOnProfile, resetUser, user } = useApp();
   const [matchedProfile, setMatchedProfile] = useState<SeedProfile | null>(null);
   const [matchVisible, setMatchVisible] = useState(false);
   const [previewProfile, setPreviewProfile] = useState<SeedProfile | null>(null);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+
+  const isMates = user?.mode === "mates";
+  const tagline = isMates ? "Find your crew." : "Knock off, hook up.";
 
   const topProfile = profiles[0];
 
@@ -67,12 +72,12 @@ export default function DiscoverScreen() {
             TRADIE MATCH
           </Text>
           <Text style={[styles.brand, { color: colors.foreground }]}>
-            Knock off, hook up.
+            {tagline}
           </Text>
         </View>
         <Pressable
           style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
-          onPress={() => {}}
+          onPress={() => setFiltersVisible(true)}
         >
           <Feather name="sliders" size={18} color={colors.foreground} />
         </Pressable>
@@ -152,9 +157,14 @@ export default function DiscoverScreen() {
         )}
       </View>
 
+      <FiltersSheet
+        visible={filtersVisible}
+        onClose={() => setFiltersVisible(false)}
+      />
       <MatchModal
         visible={matchVisible}
         profile={matchedProfile}
+        mode={user?.mode ?? "dating"}
         onClose={() => setMatchVisible(false)}
       />
       <ProfileSheet

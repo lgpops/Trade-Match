@@ -14,11 +14,45 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TradeBadge } from "@/components/TradeBadge";
+import type { Gender } from "@/constants/seedProfiles";
 import { TRADES, type TradeKey } from "@/constants/trades";
-import { useApp } from "@/context/AppContext";
+import { useApp, type Mode, type ShowMe } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-type Step = 0 | 1 | 2 | 3;
+type Step = 0 | 1 | 2 | 3 | 4;
+const TOTAL_STEPS = 5;
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: "male", label: "Man" },
+  { value: "female", label: "Woman" },
+  { value: "nonbinary", label: "Non-binary" },
+];
+
+const MODE_OPTIONS: {
+  value: Mode;
+  label: string;
+  sub: string;
+  icon: keyof typeof Feather.glyphMap;
+}[] = [
+  {
+    value: "dating",
+    label: "Dating",
+    sub: "Looking for someone special",
+    icon: "heart",
+  },
+  {
+    value: "mates",
+    label: "Mateship",
+    sub: "After mates on the tools",
+    icon: "users",
+  },
+];
+
+const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
+  { value: "men", label: "Men" },
+  { value: "women", label: "Women" },
+  { value: "everyone", label: "Everyone" },
+];
 
 export default function Onboarding() {
   const colors = useColors();
@@ -30,30 +64,35 @@ export default function Onboarding() {
   const [step, setStep] = useState<Step>(0);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const [gender, setGender] = useState<Gender | null>(null);
   const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState<TradeKey | null>(null);
   const [years, setYears] = useState("");
+  const [mode, setMode] = useState<Mode>("dating");
+  const [showMe, setShowMe] = useState<ShowMe>("everyone");
   const [bio, setBio] = useState("");
   const [rig, setRig] = useState("");
   const [weekendMove, setWeekendMove] = useState("");
   const [brewOfChoice, setBrewOfChoice] = useState("");
 
   const canContinue = useMemo(() => {
-    if (step === 0) return name.trim().length > 0 && Number(age) >= 18;
+    if (step === 0) return name.trim().length > 0 && Number(age) >= 18 && !!gender;
     if (step === 1) return !!trade && Number(years) >= 0 && suburb.trim().length > 0;
-    if (step === 2) return bio.trim().length >= 10;
+    if (step === 2) return !!mode && !!showMe;
+    if (step === 3) return bio.trim().length >= 10;
     return true;
-  }, [step, name, age, trade, years, suburb, bio]);
+  }, [step, name, age, gender, trade, years, suburb, mode, showMe, bio]);
 
   const onNext = async () => {
-    if (step < 3) {
+    if (step < 4) {
       setStep((s) => (s + 1) as Step);
       return;
     }
-    if (!trade) return;
+    if (!trade || !gender) return;
     await saveUser({
       name: name.trim(),
       age: Number(age),
+      gender,
       trade,
       yearsOnTools: Number(years || 0),
       suburb: suburb.trim(),
@@ -61,6 +100,8 @@ export default function Onboarding() {
       rig: rig.trim() || "Just the work van",
       weekendMove: weekendMove.trim() || "Down at the local",
       brewOfChoice: brewOfChoice.trim() || "Whatever's cold",
+      mode,
+      showMe,
     });
   };
 
@@ -87,7 +128,7 @@ export default function Onboarding() {
           <Feather name="chevron-left" size={26} color={colors.foreground} />
         </Pressable>
         <View style={styles.progressTrack}>
-          {[0, 1, 2, 3].map((i) => (
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <View
               key={i}
               style={[
@@ -117,6 +158,8 @@ export default function Onboarding() {
               setName={setName}
               age={age}
               setAge={setAge}
+              gender={gender}
+              setGender={setGender}
             />
           )}
           {step === 1 && (
@@ -130,9 +173,18 @@ export default function Onboarding() {
               setSuburb={setSuburb}
             />
           )}
-          {step === 2 && <Step2 colors={colors} bio={bio} setBio={setBio} />}
-          {step === 3 && (
-            <Step3
+          {step === 2 && (
+            <Step2
+              colors={colors}
+              mode={mode}
+              setMode={setMode}
+              showMe={showMe}
+              setShowMe={setShowMe}
+            />
+          )}
+          {step === 3 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
+          {step === 4 && (
+            <Step4
               colors={colors}
               rig={rig}
               setRig={setRig}
@@ -172,7 +224,7 @@ export default function Onboarding() {
               { color: canContinue ? "#FFFFFF" : colors.mutedForeground },
             ]}
           >
-            {step === 3 ? "Get on the tools" : "Continue"}
+            {step === 4 ? "Get on the tools" : "Continue"}
           </Text>
           <Feather
             name="arrow-right"
@@ -249,17 +301,21 @@ function Step0({
   setName,
   age,
   setAge,
+  gender,
+  setGender,
 }: {
   colors: ReturnType<typeof useColors>;
   name: string;
   setName: (s: string) => void;
   age: string;
   setAge: (s: string) => void;
+  gender: Gender | null;
+  setGender: (g: Gender) => void;
 }) {
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 1 OF 4"
+        eyebrow="STEP 1 OF 5"
         title="G'day, what's your name?"
         sub="The basics. Real name, real age. We're a no-bullshit kind of crew."
         colors={colors}
@@ -281,6 +337,36 @@ function Step0({
           keyboardType="number-pad"
           maxLength={2}
         />
+      </Field>
+      <Field label="I am a">
+        <View style={styles.segments}>
+          {GENDER_OPTIONS.map((g) => {
+            const selected = gender === g.value;
+            return (
+              <Pressable
+                key={g.value}
+                onPress={() => setGender(g.value)}
+                style={({ pressed }) => [
+                  styles.segment,
+                  {
+                    backgroundColor: selected ? colors.primary : colors.card,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    { color: selected ? "#FFFFFF" : colors.foreground },
+                  ]}
+                >
+                  {g.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </Field>
     </View>
   );
@@ -306,7 +392,7 @@ function Step1({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 2 OF 4"
+        eyebrow="STEP 2 OF 5"
         title="What's your trade?"
         sub="Pick the one that pays the bills."
         colors={colors}
@@ -371,6 +457,132 @@ function Step1({
 
 function Step2({
   colors,
+  mode,
+  setMode,
+  showMe,
+  setShowMe,
+}: {
+  colors: ReturnType<typeof useColors>;
+  mode: Mode;
+  setMode: (m: Mode) => void;
+  showMe: ShowMe;
+  setShowMe: (s: ShowMe) => void;
+}) {
+  return (
+    <View style={{ gap: 22 }}>
+      <Heading
+        eyebrow="STEP 3 OF 5"
+        title="What are you here for?"
+        sub="You can change this any time from the filters up top."
+        colors={colors}
+      />
+
+      <Field label="I'm here for">
+        <View style={{ gap: 10 }}>
+          {MODE_OPTIONS.map((opt) => {
+            const selected = mode === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => setMode(opt.value)}
+                style={({ pressed }) => [
+                  styles.modeCard,
+                  {
+                    backgroundColor: selected ? colors.accent : colors.card,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.modeIcon,
+                    {
+                      backgroundColor: selected
+                        ? colors.primary
+                        : colors.secondary,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={opt.icon}
+                    size={18}
+                    color={selected ? "#FFFFFF" : colors.foreground}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.modeLabel,
+                      { color: colors.foreground },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.modeSub,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    {opt.sub}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.radio,
+                    {
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected ? colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  {selected ? (
+                    <Feather name="check" size={12} color="#FFFFFF" />
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+
+      <Field label="Show me">
+        <View style={styles.segments}>
+          {SHOW_OPTIONS.map((opt) => {
+            const selected = showMe === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => setShowMe(opt.value)}
+                style={({ pressed }) => [
+                  styles.segment,
+                  {
+                    backgroundColor: selected ? colors.primary : colors.card,
+                    borderColor: selected ? colors.primary : colors.border,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    { color: selected ? "#FFFFFF" : colors.foreground },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+    </View>
+  );
+}
+
+function Step3({
+  colors,
   bio,
   setBio,
 }: {
@@ -381,7 +593,7 @@ function Step2({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 3 OF 4"
+        eyebrow="STEP 4 OF 5"
         title="Sell yourself"
         sub="A few honest lines beats a list of hobbies. Tell them who they're getting."
         colors={colors}
@@ -409,7 +621,7 @@ function Step2({
   );
 }
 
-function Step3({
+function Step4({
   colors,
   rig,
   setRig,
@@ -429,7 +641,7 @@ function Step3({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 4 OF 4"
+        eyebrow="STEP 5 OF 5"
         title="The little things"
         sub="Optional, but the good stuff. Skip if you're keen to crack on."
         colors={colors}
@@ -521,6 +733,53 @@ const styles = StyleSheet.create({
   tradeChipText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
+  },
+  segments: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: "center",
+  },
+  segmentText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  modeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+  modeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeLabel: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  modeSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
   },
   footer: {
     position: "absolute",

@@ -8,12 +8,20 @@ import React, {
   useState,
 } from "react";
 
-import { SEED_PROFILES, type SeedProfile } from "@/constants/seedProfiles";
+import {
+  SEED_PROFILES,
+  type Gender,
+  type SeedProfile,
+} from "@/constants/seedProfiles";
 import type { TradeKey } from "@/constants/trades";
+
+export type Mode = "dating" | "mates";
+export type ShowMe = "men" | "women" | "everyone";
 
 export type UserProfile = {
   name: string;
   age: number;
+  gender: Gender;
   trade: TradeKey;
   yearsOnTools: number;
   suburb: string;
@@ -21,6 +29,8 @@ export type UserProfile = {
   rig: string;
   weekendMove: string;
   brewOfChoice: string;
+  mode: Mode;
+  showMe: ShowMe;
 };
 
 export type Message = {
@@ -36,6 +46,7 @@ export type Match = {
   profile: SeedProfile;
   matchedAt: number;
   lastReadAt: number;
+  mode: Mode;
 };
 
 type Decision = "like" | "pass";
@@ -48,6 +59,7 @@ type AppState = {
   matches: Match[];
   messages: Message[];
   saveUser: (user: UserProfile) => Promise<void>;
+  updatePrefs: (prefs: Partial<Pick<UserProfile, "mode" | "showMe">>) => Promise<void>;
   resetUser: () => Promise<void>;
   decideOnProfile: (
     profileId: string,
@@ -65,7 +77,7 @@ const STORAGE_KEYS = {
   messages: "tm.messages.v1",
 };
 
-const AUTO_REPLIES = [
+const AUTO_REPLIES_DATING = [
   "Oi how's it going",
   "Haha fair enough",
   "Yeah I'm keen",
@@ -74,6 +86,17 @@ const AUTO_REPLIES = [
   "Coffee Saturday morning?",
   "Just finished site, smashed",
   "Tell me your worst tradie horror story",
+];
+
+const AUTO_REPLIES_MATES = [
+  "Oi g'day, where you working this week?",
+  "Fair enough mate",
+  "Beers Friday?",
+  "I'm at Bunnings now haha, what a sausage sizzle",
+  "Got a job on Saturday if you want to sub",
+  "Footy this weekend, you keen?",
+  "Smoko on me next time",
+  "What ute you driving these days",
 ];
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -103,7 +126,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const hydrated = parsed
             .map((mm) => {
               const profile = SEED_PROFILES.find((p) => p.id === mm.profile.id);
-              return profile ? { ...mm, profile } : null;
+              return profile ? { ...mm, profile, mode: mm.mode ?? "dating" } : null;
             })
             .filter(Boolean) as Match[];
           setMatches(hydrated);
@@ -138,6 +161,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
   }, []);
 
+  const updatePrefs = useCallback<AppState["updatePrefs"]>(
+    async (prefs) => {
+      if (!user) return;
+      const next = { ...user, ...prefs };
+      setUser(next);
+      await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+    },
+    [user],
+  );
+
   const resetUser = useCallback(async () => {
     setUser(null);
     setDecisions({});
@@ -166,6 +199,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             profile,
             matchedAt: Date.now(),
             lastReadAt: 0,
+            mode: user?.mode ?? "dating",
           };
           const nextMatches = [match, ...matches.filter((m) => m.id !== profile.id)];
           setMatches(nextMatches);
@@ -175,7 +209,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return { matched: false, profile: null };
     },
-    [decisions, matches, persistDecisions, persistMatches],
+    [decisions, matches, persistDecisions, persistMatches, user],
   );
 
   const sendMessage = useCallback<AppState["sendMessage"]>(
@@ -193,7 +227,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setMessages(next);
       void persistMessages(next);
 
-      const reply = AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)]!;
+      const match = matches.find((m) => m.id === matchId);
+      const pool =
+        match?.mode === "mates" ? AUTO_REPLIES_MATES : AUTO_REPLIES_DATING;
+      const reply = pool[Math.floor(Math.random() * pool.length)]!;
       const delay = 1500 + Math.random() * 2500;
       setTimeout(() => {
         setMessages((curr) => {
@@ -210,7 +247,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       }, delay);
     },
-    [messages, persistMessages],
+    [messages, matches, persistMessages],
   );
 
   const markMatchRead = useCallback<AppState["markMatchRead"]>(
@@ -226,10 +263,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [persistMatches],
   );
 
-  const profiles = useMemo(
-    () => SEED_PROFILES.filter((p) => !decisions[p.id]),
-    [decisions],
-  );
+  const profiles = useMemo(() => {
+    return SEED_PROFILES.filter((p) => {
+      if (decisions[p.id]) return false;
+      if (!user) return true;
+      if (user.showMe === "men" && p.gender !== "male") return false;
+      if (user.showMe === "women" && p.gender !== "female") return false;
+      return true;
+    });
+  }, [decisions, user]);
 
   const unreadCount = useMemo(() => {
     let count = 0;
@@ -250,6 +292,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     matches,
     messages,
     saveUser,
+    updatePrefs,
     resetUser,
     decideOnProfile,
     sendMessage,

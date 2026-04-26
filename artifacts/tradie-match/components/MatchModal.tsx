@@ -12,17 +12,27 @@ import {
 } from "react-native";
 
 import type { SeedProfile } from "@/constants/seedProfiles";
+import type { Mode } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Props = {
   visible: boolean;
   profile: SeedProfile | null;
+  mode?: Mode;
   onClose: () => void;
 };
 
-export function MatchModal({ visible, profile, onClose }: Props) {
+export function MatchModal({ visible, profile, mode = "dating", onClose }: Props) {
   const colors = useColors();
   if (!profile) return null;
+  const isMates = mode === "mates";
+  const eyebrow = isMates ? "New mate" : "It's a match";
+  const headline = isMates
+    ? `You and ${profile.name} are on the same page.`
+    : `You and ${profile.name} are keen.`;
+  const body = isMates
+    ? "Send the first message. Beers, jobs, smoko — kick it off."
+    : "Send the first message. No one likes a tradie that doesn't turn up.";
 
   const goToChat = () => {
     onClose();
@@ -42,8 +52,8 @@ export function MatchModal({ visible, profile, onClose }: Props) {
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.content}>
-          <Text style={styles.eyebrow}>It&apos;s a match</Text>
-          <Text style={styles.headline}>You and {profile.name} are keen.</Text>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
+          <Text style={styles.headline}>{headline}</Text>
 
           <View style={styles.photoRow}>
             <View style={[styles.photoWrap, styles.photoLeft]}>
@@ -55,13 +65,15 @@ export function MatchModal({ visible, profile, onClose }: Props) {
                 { backgroundColor: colors.background, borderColor: colors.primary },
               ]}
             >
-              <Feather name="heart" size={28} color={colors.primary} />
+              <Feather
+                name={isMates ? "users" : "heart"}
+                size={28}
+                color={colors.primary}
+              />
             </View>
           </View>
 
-          <Text style={styles.body}>
-            Send the first message. No one likes a tradie that doesn&apos;t turn up.
-          </Text>
+          <Text style={styles.body}>{body}</Text>
 
           <Pressable
             onPress={goToChat}

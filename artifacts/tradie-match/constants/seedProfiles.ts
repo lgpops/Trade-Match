@@ -1,9 +1,12 @@
 import type { TradeKey } from "./trades";
 
+export type Gender = "male" | "female" | "nonbinary";
+
 export type SeedProfile = {
   id: string;
   name: string;
   age: number;
+  gender: Gender;
   trade: TradeKey;
   yearsOnTools: number;
   suburb: string;
@@ -20,6 +23,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     id: "p1",
     name: "Jack",
     age: 31,
+    gender: "male",
     trade: "carpenter",
     yearsOnTools: 12,
     suburb: "Marrickville",
@@ -34,6 +38,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     id: "p2",
     name: "Mia",
     age: 28,
+    gender: "female",
     trade: "electrician",
     yearsOnTools: 7,
     suburb: "Brunswick",
@@ -48,6 +53,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     id: "p3",
     name: "Tommo",
     age: 34,
+    gender: "male",
     trade: "plumber",
     yearsOnTools: 15,
     suburb: "Bondi",
@@ -62,6 +68,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     id: "p4",
     name: "Sienna",
     age: 27,
+    gender: "female",
     trade: "painter",
     yearsOnTools: 6,
     suburb: "West End",
@@ -76,6 +83,7 @@ export const SEED_PROFILES: SeedProfile[] = [
     id: "p5",
     name: "Dave",
     age: 30,
+    gender: "male",
     trade: "landscaper",
     yearsOnTools: 9,
     suburb: "Newtown",
