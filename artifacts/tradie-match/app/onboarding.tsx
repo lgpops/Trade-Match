@@ -201,6 +201,7 @@ export default function Onboarding() {
       rig: rig.trim(),
       weekendMove: weekendMove.trim(),
       brewOfChoice: brewOfChoice.trim(),
+      media: [],
       mode,
       showMe,
       filters: DEFAULT_DISCOVERY_FILTERS,

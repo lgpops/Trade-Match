@@ -1,4 +1,6 @@
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
@@ -25,8 +27,11 @@ import { getTrade } from "@/constants/trades";
 import { HeightSlider } from "@/components/HeightSlider";
 import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
-import type { UserProfile } from "@/context/AppContext";
+import type { UserMedia, UserProfile } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+
+const MAX_EXTRA_MEDIA = 4;
+const MAX_VIDEO_DURATION_SECONDS = 45;
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -83,7 +88,15 @@ export default function ProfileScreen() {
                 { backgroundColor: colors.card, borderColor: colors.background },
               ]}
             >
-              <Feather name="user" size={42} color={colors.mutedForeground} />
+              {user.profilePhotoUri ? (
+                <Image
+                  source={{ uri: user.profilePhotoUri }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <Feather name="user" size={42} color={colors.mutedForeground} />
+              )}
             </View>
           </View>
           <Text style={[styles.name, { color: colors.foreground }]}>
@@ -129,6 +142,38 @@ export default function ProfileScreen() {
           </Text>
           <Text style={[styles.bio, { color: colors.foreground }]}>{user.bio}</Text>
         </View>
+
+        {user.media.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+              PHOTOS & VIDEOS
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mediaRow}
+            >
+              {user.media.map((item) => (
+                <View key={item.id} style={styles.mediaTile}>
+                  {item.type === "video" ? (
+                    <View style={[styles.mediaVideo, { backgroundColor: colors.secondary }]}>
+                      <Feather name="play-circle" size={30} color={colors.primary} />
+                      <Text style={[styles.mediaVideoText, { color: colors.foreground }]}>
+                        Video
+                      </Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={styles.mediaImage}
+                      contentFit="cover"
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <DetailRow
@@ -232,6 +277,50 @@ function EditProfileModal({
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
+  const pickProfilePhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled) {
+      setField("profilePhotoUri", result.assets[0]?.uri);
+    }
+  };
+
+  const addMedia = async () => {
+    if (draft.media.length >= 4) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      quality: 0.85,
+      videoMaxDuration: 45,
+    });
+    if (result.canceled) return;
+    const nextItems: UserMedia[] = [];
+    for (const asset of result.assets) {
+      if (nextItems.length + draft.media.length >= 4) break;
+      const durationMs = asset.duration ?? 0;
+      if (asset.type === "video" && durationMs > 45_000) {
+        Alert.alert("Video too long", "Please choose a video that is 45 seconds or shorter.");
+        continue;
+      }
+      nextItems.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        uri: asset.uri,
+        type: asset.type === "video" ? "video" : "image",
+        durationMs: asset.type === "video" ? durationMs : undefined,
+      });
+    }
+    if (nextItems.length > 0) {
+      setField("media", [...draft.media, ...nextItems]);
+    }
+  };
+
+  const removeMedia = (id: string) => {
+    setField("media", draft.media.filter((item) => item.id !== id));
+  };
+
   const save = async () => {
     if (!draft.name.trim() || !draft.region.trim() || !draft.bio.trim()) return;
     setSaving(true);
@@ -298,6 +387,48 @@ function EditProfileModal({
                 placeholder="28"
               />
             </EditField>
+            <EditField label="Profile photo">
+              <View style={styles.profilePhotoEditor}>
+                <View
+                  style={[
+                    styles.profilePhotoPreview,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  {draft.profilePhotoUri ? (
+                    <Image
+                      source={{ uri: draft.profilePhotoUri }}
+                      style={styles.profilePhotoImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Feather name="user" size={28} color={colors.mutedForeground} />
+                  )}
+                </View>
+                <View style={{ flex: 1, gap: 8 }}>
+                  <Pressable
+                    onPress={pickProfilePhoto}
+                    style={({ pressed }) => [
+                      styles.mediaPickerBtn,
+                      { borderColor: colors.border, backgroundColor: colors.card },
+                      pressed && { opacity: 0.75 },
+                    ]}
+                  >
+                    <Feather name="image" size={16} color={colors.primary} />
+                    <Text style={[styles.mediaPickerText, { color: colors.primary }]}>
+                      Choose profile photo
+                    </Text>
+                  </Pressable>
+                  {draft.profilePhotoUri ? (
+                    <Pressable onPress={() => setField("profilePhotoUri", undefined)}>
+                      <Text style={[styles.mediaRemoveText, { color: colors.destructive }]}>
+                        Remove photo
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            </EditField>
             <EditField label="Region">
               <EditInput
                 value={draft.region}
@@ -328,6 +459,58 @@ function EditProfileModal({
                 placeholder="Tell people about yourself"
                 multiline
               />
+            </EditField>
+            <EditField label="Photos & videos">
+              <Text style={[styles.mediaHint, { color: colors.mutedForeground }]}>
+                Add up to 4 extra photos or videos. Videos must be 45 seconds or shorter.
+              </Text>
+              <View style={styles.mediaEditGrid}>
+                {draft.media.map((item) => (
+                  <View
+                    key={item.id}
+                    style={[
+                      styles.mediaEditTile,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ]}
+                  >
+                    {item.type === "image" ? (
+                      <Image
+                        source={{ uri: item.uri }}
+                        style={styles.mediaEditImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={styles.mediaEditVideo}>
+                        <Feather name="play-circle" size={28} color={colors.primary} />
+                        <Text style={[styles.mediaEditVideoText, { color: colors.foreground }]}>
+                          Video
+                        </Text>
+                      </View>
+                    )}
+                    <Pressable
+                      onPress={() => removeMedia(item.id)}
+                      style={styles.removeMediaBtn}
+                    >
+                      <Feather name="x" size={14} color="#FFFFFF" />
+                    </Pressable>
+                  </View>
+                ))}
+                {draft.media.length < 4 ? (
+                  <Pressable
+                    onPress={addMedia}
+                    style={({ pressed }) => [
+                      styles.mediaAddTile,
+                      { borderColor: colors.border, backgroundColor: colors.card },
+                      pressed && { opacity: 0.75 },
+                    ]}
+                  >
+                    <Feather name="plus" size={24} color={colors.primary} />
+                    <Text style={[styles.mediaAddText, { color: colors.primary }]}>
+                      Add media
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </EditField>
             <EditField label="The rig / work setup (optional)">
               <EditInput
@@ -476,6 +659,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 4,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   name: {
     fontSize: 26,
@@ -543,6 +731,30 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontFamily: "Inter_400Regular",
   },
+  mediaRow: {
+    gap: 12,
+    paddingRight: 24,
+  },
+  mediaTile: {
+    width: 118,
+    height: 150,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  mediaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  mediaVideo: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  mediaVideoText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+  },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -609,6 +821,95 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 16,
     fontFamily: "Inter_500Medium",
+  },
+  profilePhotoEditor: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  profilePhotoPreview: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  profilePhotoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  mediaPickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  mediaPickerText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  mediaRemoveText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  mediaEditGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  mediaEditTile: {
+    width: 96,
+    height: 120,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+  },
+  mediaEditImage: {
+    width: "100%",
+    height: "100%",
+  },
+  mediaEditVideo: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  mediaEditVideoText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+  },
+  removeMediaBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mediaHint: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+  },
+  mediaAddTile: {
+    width: 96,
+    height: 120,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  mediaAddText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
   heightSliderCard: {
     borderRadius: 16,

@@ -36,6 +36,12 @@
         }
       ],
       "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Red Collar lets you choose profile photos and videos from your library."
+        }
+      ],
       "expo-web-browser"
     ],
     "experiments": {

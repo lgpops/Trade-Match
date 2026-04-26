@@ -32,6 +32,13 @@ export type DiscoveryFilters = {
   minHeightCm: number;
 };
 
+export type UserMedia = {
+  id: string;
+  uri: string;
+  type: "image" | "video";
+  durationMs?: number;
+};
+
 export type UserProfile = {
   name: string;
   age: number;
@@ -41,6 +48,8 @@ export type UserProfile = {
   heightCm: number;
   trade: TradeKey;
   customJobTitle?: string;
+  profilePhotoUri?: string;
+  media: UserMedia[];
   yearsOnTools: number;
   region: string;
   bio: string;
@@ -142,6 +151,7 @@ function hydrateUser(user: StoredUserProfile): UserProfile {
     ethnicity: user.ethnicity ?? "other",
     heightCm: user.heightCm ?? 175,
     region: user.region ?? user.suburb ?? "",
+    media: (user.media ?? []).slice(0, 4),
     filters: {
       ...DEFAULT_DISCOVERY_FILTERS,
       ...(user.filters ?? {}),
