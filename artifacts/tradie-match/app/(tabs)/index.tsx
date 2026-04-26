@@ -27,11 +27,13 @@ export default function DiscoverScreen() {
   const [matchVisible, setMatchVisible] = useState(false);
   const [previewProfile, setPreviewProfile] = useState<SeedProfile | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [activeDecisionId, setActiveDecisionId] = useState<string | null>(null);
 
   const topProfile = profiles[0];
 
-  const handleSwipe = (dir: "left" | "right") => {
-    if (!topProfile) return;
+  const handleSwipe = (dir: "left" | "right", profileId = topProfile?.id) => {
+    if (!profileId || activeDecisionId) return;
+    setActiveDecisionId(profileId);
     if (Platform.OS !== "web") {
       Haptics.impactAsync(
         dir === "right"
@@ -40,9 +42,10 @@ export default function DiscoverScreen() {
       ).catch(() => {});
     }
     const result = decideOnProfile(
-      topProfile.id,
+      profileId,
       dir === "right" ? "like" : "pass",
     );
+    setActiveDecisionId(null);
     if (result.matched && result.profile) {
       setMatchedProfile(result.profile);
       setMatchVisible(true);
@@ -111,11 +114,13 @@ export default function DiscoverScreen() {
             <View style={styles.actions}>
               <Pressable
                 onPress={() => handleButtonAction("pass")}
+                disabled={!!activeDecisionId}
                 style={({ pressed }) => [
                   styles.actionBtn,
                   styles.passBtn,
                   { backgroundColor: colors.card, borderColor: colors.border },
-                  pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] },
+                  activeDecisionId && { opacity: 0.5 },
+                  pressed && !activeDecisionId && { opacity: 0.7, transform: [{ scale: 0.96 }] },
                 ]}
               >
                 <Feather name="x" size={26} color={colors.destructive} />
@@ -135,11 +140,13 @@ export default function DiscoverScreen() {
 
               <Pressable
                 onPress={() => handleButtonAction("like")}
+                disabled={!!activeDecisionId}
                 style={({ pressed }) => [
                   styles.actionBtn,
                   styles.likeBtn,
                   { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+                  activeDecisionId && { opacity: 0.5 },
+                  pressed && !activeDecisionId && { opacity: 0.85, transform: [{ scale: 0.96 }] },
                 ]}
               >
                 <Feather name="heart" size={28} color="#FFFFFF" />
@@ -166,12 +173,12 @@ export default function DiscoverScreen() {
         onPass={() => {
           const p = previewProfile;
           setPreviewProfile(null);
-          if (p && p.id === topProfile?.id) handleSwipe("left");
+          if (p && p.id === topProfile?.id) handleSwipe("left", p.id);
         }}
         onLike={() => {
           const p = previewProfile;
           setPreviewProfile(null);
-          if (p && p.id === topProfile?.id) handleSwipe("right");
+          if (p && p.id === topProfile?.id) handleSwipe("right", p.id);
         }}
       />
     </View>

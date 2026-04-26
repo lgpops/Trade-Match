@@ -35,10 +35,17 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
   const trade = getTrade(profile.trade);
   const position = useRef(new Animated.ValueXY()).current;
   const isTopRef = useRef(isTop);
+  const onSwipeRef = useRef(onSwipe);
+  const onTapRef = useRef(onTap);
 
   useEffect(() => {
     isTopRef.current = isTop;
   }, [isTop]);
+
+  useEffect(() => {
+    onSwipeRef.current = onSwipe;
+    onTapRef.current = onTap;
+  }, [onSwipe, onTap]);
 
   useEffect(() => {
     position.setValue({ x: 0, y: 0 });
@@ -75,13 +82,13 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
             toValue: { x: SCREEN_WIDTH * 1.5, y: g.dy },
             duration: SWIPE_OUT_DURATION,
             useNativeDriver: false,
-          }).start(() => onSwipe("right"));
+          }).start(() => onSwipeRef.current("right"));
         } else if (g.dx < -SWIPE_THRESHOLD) {
           Animated.timing(position, {
             toValue: { x: -SCREEN_WIDTH * 1.5, y: g.dy },
             duration: SWIPE_OUT_DURATION,
             useNativeDriver: false,
-          }).start(() => onSwipe("left"));
+          }).start(() => onSwipeRef.current("left"));
         } else {
           Animated.spring(position, {
             toValue: { x: 0, y: 0 },
@@ -161,7 +168,7 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
           <View style={styles.tapHint}>
             <Feather name="info" size={12} color="rgba(255,255,255,0.85)" />
             <Text
-              onPress={onTap}
+              onPress={() => onTapRef.current()}
               style={styles.tapHintText}
               suppressHighlighting
             >
