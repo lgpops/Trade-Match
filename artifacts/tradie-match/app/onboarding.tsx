@@ -61,6 +61,15 @@ const MODE_OPTIONS: {
   },
 ];
 
+const REGION_EXAMPLES = [
+  "Sydney, Australia",
+  "New York, United States",
+  "London, United Kingdom",
+  "Toronto, Canada",
+];
+
+const LEGACY_REGION_PLACEHOLDERS = new Set(["Inner West"]);
+
 const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
   { value: "men", label: "Men" },
   { value: "women", label: "Women" },
@@ -71,6 +80,19 @@ function defaultShowMeForGender(gender: Gender | null): ShowMe {
   if (gender === "female") return "men";
   if (gender === "male") return "women";
   return "everyone";
+}
+
+function formatRegionFromPlace(place: Location.LocationGeocodedAddress): string {
+  const locality =
+    place.city ||
+    place.region ||
+    place.subregion ||
+    place.district ||
+    place.name;
+  return [locality, place.country]
+    .filter(Boolean)
+    .filter((part, index, parts) => parts.indexOf(part) === index)
+    .join(", ");
 }
 
 export default function Onboarding() {
@@ -91,8 +113,6 @@ export default function Onboarding() {
   const [trade, setTrade] = useState<TradeKey | null>(null);
   const [customJobTitle, setCustomJobTitle] = useState("");
   const [years, setYears] = useState("");
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState("");
   const [mode, setMode] = useState<Mode>("dating");
   const [showMe, setShowMe] = useState<ShowMe>("everyone");
   const [bio, setBio] = useState("");
@@ -101,10 +121,13 @@ export default function Onboarding() {
   const [brewOfChoice, setBrewOfChoice] = useState("");
 
   useEffect(() => {
+    if (LEGACY_REGION_PLACEHOLDERS.has(region.trim())) {
+      setRegion("");
+    }
     if (step === 2) {
       setShowMe(mode === "mates" ? "everyone" : defaultShowMeForGender(gender));
     }
-  }, [gender, mode, step]);
+  }, [gender, mode, region, step]);
 
   const setGenderAndDefaultPreference = (nextGender: Gender) => {
     setGender(nextGender);
@@ -116,41 +139,6 @@ export default function Onboarding() {
   const setModeAndDefaultPreference = (nextMode: Mode) => {
     setMode(nextMode);
     setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(gender));
-  };
-
-  const useCurrentLocation = async () => {
-    setLocationError("");
-    setLocating(true);
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (permission.status !== "granted") {
-        setLocationError("Location permission was not granted.");
-        return;
-      }
-
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const [place] = await Location.reverseGeocodeAsync(position.coords);
-      const resolvedRegion = [
-        place?.city || place?.district || place?.subregion || place?.region,
-        place?.region,
-        place?.country,
-      ]
-        .filter(Boolean)
-        .filter((part, index, parts) => parts.indexOf(part) === index)
-        .join(", ");
-
-      if (resolvedRegion) {
-        setRegion(resolvedRegion);
-      } else {
-        setLocationError("Could not identify your region from this location.");
-      }
-    } catch {
-      setLocationError("Could not fetch your current location.");
-    } finally {
-      setLocating(false);
-    }
   };
 
   const canContinue = useMemo(() => {
@@ -775,6 +763,31 @@ function Step1({
             Type a region or share your phone location to fill this automatically.
           </Text>
         )}
+        <View style={styles.regionExamples}>
+          {REGION_EXAMPLES.map((example) => (
+            <Pressable
+              key={example}
+              onPress={() => setRegion(example)}
+              style={({ pressed }) => [
+                styles.optionChip,
+                {
+                  backgroundColor: region === example ? colors.primary : colors.card,
+                  borderColor: region === example ? colors.primary : colors.border,
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.optionChipText,
+                  { color: region === example ? "#FFFFFF" : colors.foreground },
+                ]}
+              >
+                {example}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </Field>
     </View>
   );
@@ -1137,6 +1150,11 @@ const styles = StyleSheet.create({
   locationButtonText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
+  },
+  regionExamples: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
   },
   modeCard: {
     flexDirection: "row",
