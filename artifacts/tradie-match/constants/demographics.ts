@@ -1,4 +1,4 @@
-export type CollarType = "blue" | "white";
+export type CollarType = "blue" | "white" | "other";
 export type CollarPreference = CollarType | "everyone";
 
 export type Ethnicity =
@@ -25,6 +25,11 @@ export const COLLAR_OPTIONS: { value: CollarType; label: string; sub: string }[]
     label: "White collar",
     sub: "Office, professional, creative and corporate work",
   },
+  {
+    value: "other",
+    label: "Other",
+    sub: "Artists, athletes, founders, performers and anything else",
+  },
 ];
 
 export const COLLAR_FILTER_OPTIONS: {
@@ -34,6 +39,7 @@ export const COLLAR_FILTER_OPTIONS: {
   { value: "everyone", label: "All" },
   { value: "blue", label: "Blue" },
   { value: "white", label: "White" },
+  { value: "other", label: "Other" },
 ];
 
 export const ETHNICITY_OPTIONS: { value: Ethnicity; label: string }[] = [

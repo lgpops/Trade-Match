@@ -33,7 +33,13 @@ export function TradeBadge({ job, trade, customJobTitle, label: labelOverride, s
       ]}
     >
       <Feather
-        name={t.collarType === "blue" ? "tool" : "briefcase"}
+        name={
+          t.collarType === "blue"
+            ? "tool"
+            : t.collarType === "white"
+              ? "briefcase"
+              : "star"
+        }
         size={iconSize}
         color="#FFFFFF"
       />

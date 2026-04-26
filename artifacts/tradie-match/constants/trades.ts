@@ -56,7 +56,7 @@ export const TRADES: Trade[] = [
   { key: "designer", name: "Designer", nickname: "Designer", collarType: "white", color: "#DB2777" },
   { key: "marketer", name: "Marketer", nickname: "Marketing", collarType: "white", color: "#DC2626" },
   { key: "consultant", name: "Consultant", nickname: "Consultant", collarType: "white", color: "#334155" },
-  { key: "other", name: "Other", nickname: "Other", collarType: "blue", color: "#D72638" },
+  { key: "other", name: "Other", nickname: "Other", collarType: "other", color: "#D72638" },
 ];
 
 export function getTrade(key: TradeKey): Trade {
@@ -64,12 +64,12 @@ export function getTrade(key: TradeKey): Trade {
 }
 
 export function getTradesForCollar(collarType: CollarType): Trade[] {
-  return TRADES.filter((trade) => trade.collarType === collarType || trade.key === "other");
+  return TRADES.filter((trade) => trade.collarType === collarType);
 }
 
 export function isTradeForCollar(key: TradeKey, collarType: CollarType): boolean {
   const trade = getTrade(key);
-  return trade.key === "other" || trade.collarType === collarType;
+  return trade.collarType === collarType;
 }
 
 export function getTradeLabel(key: TradeKey, customJobTitle?: string): string {

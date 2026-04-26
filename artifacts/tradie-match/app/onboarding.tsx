@@ -699,7 +699,7 @@ function Step1({
 }: {
   colors: ReturnType<typeof useColors>;
   trade: TradeKey | null;
-  setTrade: (t: TradeKey) => void;
+  setTrade: (t: TradeKey | null) => void;
   collarType: CollarType;
   setCollarType: (c: CollarType) => void;
   customJobTitle: string;
@@ -761,7 +761,15 @@ function Step1({
             return (
               <Pressable
                 key={option.value}
-                onPress={() => setCollarType(option.value)}
+                onPress={() => {
+                  setCollarType(option.value);
+                  if (option.value === "other") {
+                    setTrade("other");
+                  } else if (trade && !isTradeForCollar(trade, option.value)) {
+                    setTrade(null);
+                    setCustomJobTitle("");
+                  }
+                }}
                 style={({ pressed }) => [
                   styles.modeCard,
                   {
@@ -780,7 +788,13 @@ function Step1({
                   ]}
                 >
                   <Feather
-                    name={option.value === "blue" ? "tool" : "briefcase"}
+                    name={
+                      option.value === "blue"
+                        ? "tool"
+                        : option.value === "white"
+                          ? "briefcase"
+                          : "star"
+                    }
                     size={18}
                     color={selected ? "#FFFFFF" : colors.foreground}
                   />
@@ -809,41 +823,43 @@ function Step1({
           })}
         </View>
       </Field>
-      <Field label="Work / industry">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingRight: 12 }}
-        >
-          {tradeOptions.map((t) => {
-            const selected = t.key === trade;
-            return (
-              <Pressable
-                key={t.key}
-                onPress={() => setTrade(t.key)}
-                style={({ pressed }) => [
-                  styles.tradeChip,
-                  {
-                    backgroundColor: selected ? t.color : colors.card,
-                    borderColor: selected ? t.color : colors.border,
-                  },
-                  pressed && { opacity: 0.85 },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tradeChipText,
-                    { color: selected ? "#FFFFFF" : colors.foreground },
+      {collarType !== "other" ? (
+        <Field label="Work / industry">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingRight: 12 }}
+          >
+            {tradeOptions.map((t) => {
+              const selected = t.key === trade;
+              return (
+                <Pressable
+                  key={t.key}
+                  onPress={() => setTrade(t.key)}
+                  style={({ pressed }) => [
+                    styles.tradeChip,
+                    {
+                      backgroundColor: selected ? t.color : colors.card,
+                      borderColor: selected ? t.color : colors.border,
+                    },
+                    pressed && { opacity: 0.85 },
                   ]}
                 >
-                  {t.nickname}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </Field>
-      {trade && (
+                  <Text
+                    style={[
+                      styles.tradeChipText,
+                      { color: selected ? "#FFFFFF" : colors.foreground },
+                    ]}
+                  >
+                    {t.nickname}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Field>
+      ) : null}
+      {trade && collarType !== "other" ? (
         <View style={{ alignItems: "flex-start", marginTop: -4 }}>
           <TradeBadge
             job={trade}
@@ -851,13 +867,19 @@ function Step1({
             size="md"
           />
         </View>
-      )}
-      {trade === "other" && (
+      ) : null}
+      {(trade === "other" || collarType === "other") && (
         <Field label="Your job title">
           <Input
             value={customJobTitle}
             onChangeText={setCustomJobTitle}
-            placeholder={collarType === "blue" ? "Scaffolder" : "Product manager"}
+            placeholder={
+              collarType === "blue"
+                ? "Scaffolder"
+                : collarType === "white"
+                  ? "Product manager"
+                  : "Artist, CEO, parkour athlete"
+            }
             autoCapitalize="words"
             maxLength={40}
           />
