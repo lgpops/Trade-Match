@@ -12,7 +12,8 @@ export type TradeKey =
   | "landscaper"
   | "glazier"
   | "plasterer"
-  | "hvac";
+  | "hvac"
+  | "builder";
 
 export type Trade = {
   key: TradeKey;
@@ -22,6 +23,7 @@ export type Trade = {
 };
 
 export const TRADES: Trade[] = [
+  { key: "builder", name: "Builder", nickname: "Builder", color: "#D97706" },
   { key: "carpenter", name: "Carpenter", nickname: "Chippy", color: "#A0522D" },
   { key: "electrician", name: "Electrician", nickname: "Sparky", color: "#E8A92E" },
   { key: "plumber", name: "Plumber", nickname: "Plumber", color: "#2563EB" },
