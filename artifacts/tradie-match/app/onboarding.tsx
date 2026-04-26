@@ -148,6 +148,9 @@ export default function Onboarding() {
 
   const onNext = async () => {
     if (step < 4) {
+      if (step === 1) {
+        setShowMe(mode === "mates" ? "everyone" : defaultShowMeForGender(gender));
+      }
       setStep((s) => (s + 1) as Step);
       return;
     }
