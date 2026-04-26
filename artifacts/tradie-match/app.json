@@ -16,7 +16,8 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Red Collar uses your location to suggest your region during onboarding."
+        "NSLocationWhenInUseUsageDescription": "Red Collar uses your location to suggest your region during onboarding.",
+        "NSPhotoLibraryUsageDescription": "Red Collar lets you choose profile photos and videos from your library."
       }
     },
     "android": {

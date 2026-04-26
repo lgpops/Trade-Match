@@ -1,4 +1,6 @@
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
@@ -108,6 +110,7 @@ export default function Onboarding() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
+  const [profilePhotoUri, setProfilePhotoUri] = useState("");
   const [ethnicity, setEthnicity] = useState<Ethnicity | null>(null);
   const [heightCm, setHeightCm] = useState("175");
   const [collarType, setCollarType] = useState<CollarType>("blue");
@@ -149,6 +152,7 @@ export default function Onboarding() {
         name.trim().length > 0 &&
         Number(age) >= 18 &&
         !!gender &&
+        profilePhotoUri.trim().length > 0 &&
         !!ethnicity &&
         Number(heightCm) >= 140
       );
@@ -169,6 +173,7 @@ export default function Onboarding() {
     name,
     age,
     gender,
+    profilePhotoUri,
     ethnicity,
     heightCm,
     trade,
@@ -190,6 +195,7 @@ export default function Onboarding() {
       name: name.trim(),
       age: Number(age),
       gender,
+      profilePhotoUri,
       collarType,
       ethnicity,
       heightCm: Number(heightCm),
@@ -263,6 +269,8 @@ export default function Onboarding() {
               setAge={setAge}
               gender={gender}
               setGender={setGenderAndDefaultPreference}
+              profilePhotoUri={profilePhotoUri}
+              setProfilePhotoUri={setProfilePhotoUri}
               ethnicity={ethnicity}
               setEthnicity={setEthnicity}
               heightCm={heightCm}
@@ -421,6 +429,8 @@ function Step0({
   setAge,
   gender,
   setGender,
+  profilePhotoUri,
+  setProfilePhotoUri,
   ethnicity,
   setEthnicity,
   heightCm,
@@ -433,6 +443,8 @@ function Step0({
   setAge: (s: string) => void;
   gender: Gender | null;
   setGender: (g: Gender) => void;
+  profilePhotoUri: string;
+  setProfilePhotoUri: (uri: string) => void;
   ethnicity: Ethnicity | null;
   setEthnicity: (e: Ethnicity) => void;
   heightCm: string;
@@ -440,6 +452,18 @@ function Step0({
 }) {
   const parsedHeight = Number(heightCm);
   const { feet, inches } = cmToFeetInches(Number.isFinite(parsedHeight) ? parsedHeight : 0);
+  const pickProfilePhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setProfilePhotoUri(result.assets[0].uri);
+    }
+  };
+
   return (
     <View style={{ gap: 18 }}>
       <Heading
@@ -494,6 +518,44 @@ function Step0({
               </Pressable>
             );
           })}
+        </View>
+      </Field>
+      <Field label="Profile photo">
+        <View style={styles.photoPicker}>
+          <View
+            style={[
+              styles.photoPreview,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            {profilePhotoUri ? (
+              <Image
+                source={{ uri: profilePhotoUri }}
+                style={styles.photoPreviewImage}
+                contentFit="cover"
+              />
+            ) : (
+              <Feather name="camera" size={28} color={colors.mutedForeground} />
+            )}
+          </View>
+          <View style={{ flex: 1, gap: 8 }}>
+            <Pressable
+              onPress={pickProfilePhoto}
+              style={({ pressed }) => [
+                styles.photoButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                pressed && { opacity: 0.75 },
+              ]}
+            >
+              <Feather name="image" size={16} color={colors.primary} />
+              <Text style={[styles.photoButtonText, { color: colors.primary }]}>
+                {profilePhotoUri ? "Change photo" : "Choose photo"}
+              </Text>
+            </Pressable>
+            <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+              Required. This is your main profile photo.
+            </Text>
+          </View>
         </View>
       </Field>
       <Field label="Ethnicity">
@@ -1129,6 +1191,37 @@ const styles = StyleSheet.create({
   fieldHint: {
     fontSize: 12,
     fontFamily: "Inter_500Medium",
+  },
+  photoPicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  photoPreview: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  photoPreviewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  photoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  photoButtonText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
   locationButton: {
     flexDirection: "row",

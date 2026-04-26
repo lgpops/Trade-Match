@@ -43,8 +43,8 @@ export default function ChatScreen() {
   );
 
   useEffect(() => {
-    if (match) markMatchRead(match.id);
-  }, [match, markMatchRead]);
+    if (id) markMatchRead(id);
+  }, [id, markMatchRead]);
 
   if (!match) {
     return (

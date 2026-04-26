@@ -335,8 +335,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const markMatchRead = useCallback<AppState["markMatchRead"]>(
     (matchId) => {
       setMatches((curr) => {
+        const current = curr.find((m) => m.id === matchId);
+        if (!current) return curr;
+        const now = Date.now();
+        if (current.lastReadAt >= now - 1000) return curr;
         const next = curr.map((m) =>
-          m.id === matchId ? { ...m, lastReadAt: Date.now() } : m,
+          m.id === matchId ? { ...m, lastReadAt: now } : m,
         );
         void persistMatches(next);
         return next;
