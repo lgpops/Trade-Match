@@ -78,7 +78,15 @@ export default function ProfileScreen() {
             {user.name}, {user.age}
           </Text>
           <View style={{ marginTop: 8 }}>
-            <TradeBadge trade={user.trade} size="lg" />
+            <TradeBadge
+              trade={user.trade}
+              size="lg"
+              customLabel={
+                user.trade === "red_collar" && user.jobTitle
+                  ? user.jobTitle
+                  : undefined
+              }
+            />
           </View>
           <Text style={[styles.suburb, { color: colors.mutedForeground }]}>
             {user.suburb} · {user.yearsOnTools} yrs on the tools

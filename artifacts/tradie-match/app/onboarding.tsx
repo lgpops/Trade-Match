@@ -36,7 +36,7 @@ const MODE_OPTIONS: {
   {
     value: "dating",
     label: "Dating",
-    sub: "Looking for someone special",
+    sub: "Just looking for love",
     icon: "heart",
   },
   {
@@ -66,6 +66,7 @@ export default function Onboarding() {
   const [gender, setGender] = useState<Gender | null>(null);
   const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState<TradeKey | null>(null);
+  const [jobTitle, setJobTitle] = useState("");
   const [years, setYears] = useState("");
   const [mode, setMode] = useState<Mode>("dating");
   const [showMe, setShowMe] = useState<ShowMe>("everyone");
@@ -76,11 +77,18 @@ export default function Onboarding() {
 
   const canContinue = useMemo(() => {
     if (step === 0) return name.trim().length > 0 && Number(age) >= 18 && !!gender;
-    if (step === 1) return !!trade && Number(years) >= 0 && suburb.trim().length > 0;
+    if (step === 1) {
+      return (
+        !!trade &&
+        (trade !== "red_collar" || jobTitle.trim().length > 0) &&
+        Number(years) >= 0 &&
+        suburb.trim().length > 0
+      );
+    }
     if (step === 2) return !!mode && !!showMe;
     if (step === 3) return bio.trim().length >= 10;
     return true;
-  }, [step, name, age, gender, trade, years, suburb, mode, showMe, bio]);
+  }, [step, name, age, gender, trade, jobTitle, years, suburb, mode, showMe, bio]);
 
   const onNext = async () => {
     if (step < 4) {
@@ -93,6 +101,9 @@ export default function Onboarding() {
       age: Number(age),
       gender,
       trade,
+      ...(trade === "red_collar" && jobTitle.trim()
+        ? { jobTitle: jobTitle.trim() }
+        : {}),
       yearsOnTools: Number(years || 0),
       suburb: suburb.trim(),
       bio: bio.trim(),
@@ -165,7 +176,12 @@ export default function Onboarding() {
             <Step1
               colors={colors}
               trade={trade}
-              setTrade={setTrade}
+              setTrade={(t) => {
+                setTrade(t);
+                if (t !== "red_collar") setJobTitle("");
+              }}
+              jobTitle={jobTitle}
+              setJobTitle={setJobTitle}
               years={years}
               setYears={setYears}
               suburb={suburb}
@@ -375,6 +391,8 @@ function Step1({
   colors,
   trade,
   setTrade,
+  jobTitle,
+  setJobTitle,
   years,
   setYears,
   suburb,
@@ -383,6 +401,8 @@ function Step1({
   colors: ReturnType<typeof useColors>;
   trade: TradeKey | null;
   setTrade: (t: TradeKey) => void;
+  jobTitle: string;
+  setJobTitle: (s: string) => void;
   years: string;
   setYears: (s: string) => void;
   suburb: string;
@@ -430,8 +450,23 @@ function Step1({
       </ScrollView>
       {trade && (
         <View style={{ alignItems: "flex-start", marginTop: -4 }}>
-          <TradeBadge trade={trade} size="md" />
+          <TradeBadge
+            trade={trade}
+            size="md"
+            customLabel={trade === "red_collar" && jobTitle.trim() ? jobTitle.trim() : undefined}
+          />
         </View>
+      )}
+      {trade === "red_collar" && (
+        <Field label="Your job title">
+          <Input
+            value={jobTitle}
+            onChangeText={setJobTitle}
+            placeholder="e.g. Nurse, Teacher, Chef…"
+            autoCapitalize="words"
+            maxLength={40}
+          />
+        </Field>
       )}
       <Field label="Years on the tools">
         <Input

@@ -7,9 +7,10 @@ import { getTrade, type TradeKey } from "@/constants/trades";
 type Props = {
   trade: TradeKey;
   size?: "sm" | "md" | "lg";
+  customLabel?: string;
 };
 
-export function TradeBadge({ trade, size = "md" }: Props) {
+export function TradeBadge({ trade, size = "md", customLabel }: Props) {
   const t = getTrade(trade);
   const padV = size === "sm" ? 4 : size === "lg" ? 8 : 6;
   const padH = size === "sm" ? 8 : size === "lg" ? 14 : 10;
@@ -29,7 +30,7 @@ export function TradeBadge({ trade, size = "md" }: Props) {
     >
       <Feather name="tool" size={iconSize} color="#FFFFFF" />
       <Text style={[styles.text, { fontSize }]} numberOfLines={1}>
-        {t.nickname}
+        {customLabel ?? t.nickname}
       </Text>
     </View>
   );

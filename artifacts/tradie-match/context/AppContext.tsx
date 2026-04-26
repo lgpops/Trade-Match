@@ -23,6 +23,7 @@ export type UserProfile = {
   age: number;
   gender: Gender;
   trade: TradeKey;
+  jobTitle?: string;
   yearsOnTools: number;
   suburb: string;
   bio: string;
