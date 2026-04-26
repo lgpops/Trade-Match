@@ -25,7 +25,6 @@ const TOTAL_STEPS = 5;
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "male", label: "Man" },
   { value: "female", label: "Woman" },
-  { value: "nonbinary", label: "Non-binary" },
 ];
 
 const MODE_OPTIONS: {

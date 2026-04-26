@@ -1,6 +1,6 @@
 import type { TradeKey } from "./trades";
 
-export type Gender = "male" | "female" | "nonbinary";
+export type Gender = "male" | "female";
 
 export type SeedProfile = {
   id: string;
