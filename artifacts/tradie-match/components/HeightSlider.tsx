@@ -15,6 +15,7 @@ type Props = {
   min: number;
   max: number;
   step?: number;
+  formatValue?: (value: number) => string;
   onChange: (value: number) => void;
 };
 
@@ -24,6 +25,7 @@ export function HeightSlider({
   min,
   max,
   step = 1,
+  formatValue = formatHeight,
   onChange,
 }: Props) {
   const colors = useColors();
@@ -67,7 +69,7 @@ export function HeightSlider({
           {label}
         </Text>
         <Text style={[styles.value, { color: colors.foreground }]}>
-          {formatHeight(value)}
+          {formatValue(value)}
         </Text>
       </View>
       <View
@@ -99,10 +101,10 @@ export function HeightSlider({
       </View>
       <View style={styles.rangeRow}>
         <Text style={[styles.rangeText, { color: colors.mutedForeground }]}>
-          {formatHeight(min)}
+          {formatValue(min)}
         </Text>
         <Text style={[styles.rangeText, { color: colors.mutedForeground }]}>
-          {formatHeight(max)}
+          {formatValue(max)}
         </Text>
       </View>
     </View>

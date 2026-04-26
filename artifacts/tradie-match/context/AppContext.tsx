@@ -37,6 +37,8 @@ export type UserMedia = {
   uri: string;
   type: "image" | "video";
   durationMs?: number;
+  trimStartMs?: number;
+  trimEndMs?: number;
 };
 
 export type UserProfile = {

@@ -31,7 +31,21 @@ import type { UserMedia, UserProfile } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 const MAX_EXTRA_MEDIA = 4;
-const MAX_VIDEO_DURATION_SECONDS = 45;
+const MAX_VIDEO_SEGMENT_MS = 45_000;
+
+type PendingVideo = {
+  id: string;
+  uri: string;
+  durationMs: number;
+  trimStartMs: number;
+};
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 export default function ProfileScreen() {
   const colors = useColors();
