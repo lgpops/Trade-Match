@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
@@ -14,6 +13,8 @@ import {
   type SeedProfile,
 } from "@/constants/seedProfiles";
 import type { TradeKey } from "@/constants/trades";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export type Mode = "dating" | "mates";
 export type ShowMe = "men" | "women" | "everyone";
@@ -71,13 +72,6 @@ type AppState = {
   unreadCount: number;
 };
 
-const STORAGE_KEYS = {
-  user: "tm.user.v1",
-  decisions: "tm.decisions.v1",
-  matches: "tm.matches.v1",
-  messages: "tm.messages.v1",
-};
-
 const AUTO_REPLIES_DATING = [
   "Oi how's it going",
   "Haha fair enough",
@@ -105,96 +99,185 @@ const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const { user: authUser } = useAuth();
+  const uid = authUser?.id ?? null;
+
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [matches, setMatches] = useState<Match[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
+  // Reset local state when auth user changes
   useEffect(() => {
+    setReady(false);
+    setUser(null);
+    setDecisions({});
+    setMatches([]);
+    setMessages([]);
+
+    if (!uid) {
+      setReady(true);
+      return;
+    }
+
     (async () => {
       try {
-        const [u, d, m, msgs] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.user),
-          AsyncStorage.getItem(STORAGE_KEYS.decisions),
-          AsyncStorage.getItem(STORAGE_KEYS.matches),
-          AsyncStorage.getItem(STORAGE_KEYS.messages),
-        ]);
-        if (u) setUser(JSON.parse(u));
-        if (d) setDecisions(JSON.parse(d));
-        if (m) {
-          const parsed: Match[] = JSON.parse(m);
-          const hydrated = parsed
-            .map((mm) => {
-              const profile = SEED_PROFILES.find((p) => p.id === mm.profile.id);
-              return profile ? { ...mm, profile, mode: mm.mode ?? "dating" } : null;
+        // Load profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", uid)
+          .maybeSingle();
+
+        if (profile) {
+          setUser({
+            name: profile.name,
+            age: profile.age,
+            gender: profile.gender as Gender,
+            trade: profile.trade as TradeKey,
+            jobTitle: profile.job_title ?? undefined,
+            yearsOnTools: profile.years_on_tools,
+            suburb: profile.suburb,
+            bio: profile.bio,
+            rig: profile.rig,
+            weekendMove: profile.weekend_move,
+            brewOfChoice: profile.brew_of_choice,
+            mode: profile.mode as Mode,
+            showMe: profile.show_me as ShowMe,
+          });
+        }
+
+        // Load decisions
+        const { data: decs } = await supabase
+          .from("decisions")
+          .select("profile_id, decision")
+          .eq("user_id", uid);
+
+        if (decs) {
+          const decMap: Record<string, Decision> = {};
+          for (const d of decs) decMap[d.profile_id] = d.decision as Decision;
+          setDecisions(decMap);
+        }
+
+        // Load matches
+        const { data: mts } = await supabase
+          .from("matches")
+          .select("*")
+          .eq("user_id", uid)
+          .order("matched_at", { ascending: false });
+
+        if (mts) {
+          const hydrated = mts
+            .map((m) => {
+              const sp = SEED_PROFILES.find((p) => p.id === m.profile_id);
+              if (!sp) return null;
+              return {
+                id: m.profile_id,
+                profile: sp,
+                matchedAt: new Date(m.matched_at).getTime(),
+                lastReadAt: m.last_read_at ? new Date(m.last_read_at).getTime() : 0,
+                mode: (m.mode ?? "dating") as Mode,
+              } satisfies Match;
             })
             .filter(Boolean) as Match[];
           setMatches(hydrated);
         }
-        if (msgs) setMessages(JSON.parse(msgs));
-      } catch {
-        // ignore
+
+        // Load messages
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: true });
+
+        if (msgs) {
+          setMessages(
+            msgs.map((m) => ({
+              id: m.id,
+              matchId: m.match_id,
+              text: m.text,
+              fromMe: m.from_me,
+              createdAt: new Date(m.created_at).getTime(),
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("AppContext load error", err);
       } finally {
         setReady(true);
       }
     })();
-  }, []);
+  }, [uid]);
 
-  const persistDecisions = useCallback(async (next: Record<string, Decision>) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.decisions, JSON.stringify(next));
-  }, []);
-
-  const persistMatches = useCallback(async (next: Match[]) => {
-    const serializable = next.map((m) => ({
-      ...m,
-      profile: { ...m.profile, photo: undefined },
-    }));
-    await AsyncStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(serializable));
-  }, []);
-
-  const persistMessages = useCallback(async (next: Message[]) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(next));
-  }, []);
-
-  const saveUser = useCallback(async (next: UserProfile) => {
-    setUser(next);
-    await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
-  }, []);
+  const saveUser = useCallback(
+    async (next: UserProfile) => {
+      if (!uid) return;
+      setUser(next);
+      await supabase.from("profiles").upsert({
+        id: uid,
+        name: next.name,
+        age: next.age,
+        gender: next.gender,
+        trade: next.trade,
+        job_title: next.jobTitle ?? null,
+        years_on_tools: next.yearsOnTools,
+        suburb: next.suburb,
+        bio: next.bio,
+        rig: next.rig,
+        weekend_move: next.weekendMove,
+        brew_of_choice: next.brewOfChoice,
+        mode: next.mode,
+        show_me: next.showMe,
+      });
+    },
+    [uid],
+  );
 
   const updatePrefs = useCallback<AppState["updatePrefs"]>(
     async (prefs) => {
-      if (!user) return;
+      if (!uid || !user) return;
       const next = { ...user, ...prefs };
       setUser(next);
-      await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+      await supabase
+        .from("profiles")
+        .update({ mode: next.mode, show_me: next.showMe })
+        .eq("id", uid);
     },
-    [user],
+    [uid, user],
   );
 
   const resetUser = useCallback(async () => {
+    if (!uid) return;
     setUser(null);
     setDecisions({});
     setMatches([]);
     setMessages([]);
     await Promise.all([
-      AsyncStorage.removeItem(STORAGE_KEYS.user),
-      AsyncStorage.removeItem(STORAGE_KEYS.decisions),
-      AsyncStorage.removeItem(STORAGE_KEYS.matches),
-      AsyncStorage.removeItem(STORAGE_KEYS.messages),
+      supabase.from("profiles").delete().eq("id", uid),
+      supabase.from("decisions").delete().eq("user_id", uid),
+      supabase.from("matches").delete().eq("user_id", uid),
+      supabase.from("messages").delete().eq("user_id", uid),
     ]);
-  }, []);
+  }, [uid]);
 
   const decideOnProfile = useCallback<AppState["decideOnProfile"]>(
     (profileId, decision) => {
+      if (!uid) return { matched: false, profile: null };
       const profile = SEED_PROFILES.find((p) => p.id === profileId) ?? null;
       const nextDecisions = { ...decisions, [profileId]: decision };
       setDecisions(nextDecisions);
-      void persistDecisions(nextDecisions);
+
+      void supabase.from("decisions").upsert({
+        user_id: uid,
+        profile_id: profileId,
+        decision,
+      });
 
       if (decision === "like" && profile) {
         const isMatch = Math.random() < 0.7;
         if (isMatch) {
+          const now = new Date().toISOString();
           const match: Match = {
             id: profile.id,
             profile,
@@ -204,19 +287,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
           const nextMatches = [match, ...matches.filter((m) => m.id !== profile.id)];
           setMatches(nextMatches);
-          void persistMatches(nextMatches);
+          void supabase.from("matches").upsert({
+            user_id: uid,
+            profile_id: profileId,
+            matched_at: now,
+            last_read_at: null,
+            mode: user?.mode ?? "dating",
+          });
           return { matched: true, profile };
         }
       }
       return { matched: false, profile: null };
     },
-    [decisions, matches, persistDecisions, persistMatches, user],
+    [uid, decisions, matches, user],
   );
 
   const sendMessage = useCallback<AppState["sendMessage"]>(
     (matchId, text) => {
+      if (!uid) return;
       const trimmed = text.trim();
       if (!trimmed) return;
+
       const msg: Message = {
         id: newId(),
         matchId,
@@ -226,42 +317,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       const next = [...messages, msg];
       setMessages(next);
-      void persistMessages(next);
+
+      void supabase.from("messages").insert({
+        id: msg.id,
+        user_id: uid,
+        match_id: matchId,
+        text: trimmed,
+        from_me: true,
+        created_at: new Date(msg.createdAt).toISOString(),
+      });
 
       const match = matches.find((m) => m.id === matchId);
       const pool =
         match?.mode === "mates" ? AUTO_REPLIES_MATES : AUTO_REPLIES_DATING;
       const reply = pool[Math.floor(Math.random() * pool.length)]!;
       const delay = 1500 + Math.random() * 2500;
+
       setTimeout(() => {
-        setMessages((curr) => {
-          const replyMsg: Message = {
-            id: newId(),
-            matchId,
-            text: reply,
-            fromMe: false,
-            createdAt: Date.now(),
-          };
-          const updated = [...curr, replyMsg];
-          void persistMessages(updated);
-          return updated;
+        const replyMsg: Message = {
+          id: newId(),
+          matchId,
+          text: reply,
+          fromMe: false,
+          createdAt: Date.now(),
+        };
+        setMessages((curr) => [...curr, replyMsg]);
+        void supabase.from("messages").insert({
+          id: replyMsg.id,
+          user_id: uid,
+          match_id: matchId,
+          text: reply,
+          from_me: false,
+          created_at: new Date(replyMsg.createdAt).toISOString(),
         });
       }, delay);
     },
-    [messages, matches, persistMessages],
+    [uid, messages, matches],
   );
 
   const markMatchRead = useCallback<AppState["markMatchRead"]>(
     (matchId) => {
-      setMatches((curr) => {
-        const next = curr.map((m) =>
+      if (!uid) return;
+      const now = new Date().toISOString();
+      setMatches((curr) =>
+        curr.map((m) =>
           m.id === matchId ? { ...m, lastReadAt: Date.now() } : m,
-        );
-        void persistMatches(next);
-        return next;
-      });
+        ),
+      );
+      void supabase
+        .from("matches")
+        .update({ last_read_at: now })
+        .eq("user_id", uid)
+        .eq("profile_id", matchId);
     },
-    [persistMatches],
+    [uid],
   );
 
   const profiles = useMemo(() => {

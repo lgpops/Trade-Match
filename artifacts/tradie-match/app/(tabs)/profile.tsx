@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getTrade } from "@/constants/trades";
 
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, matches, decisions, resetUser } = useApp();
+  const { signOut } = useAuth();
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 + 20 : 84 + insets.bottom;
 
@@ -31,12 +33,31 @@ export default function ProfileScreen() {
 
   const onSignOut = () => {
     if (Platform.OS === "web") {
+      void signOut();
+      return;
+    }
+    Alert.alert(
+      "Sign out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign out",
+          style: "destructive",
+          onPress: () => void signOut(),
+        },
+      ],
+    );
+  };
+
+  const onResetProfile = () => {
+    if (Platform.OS === "web") {
       void resetUser();
       return;
     }
     Alert.alert(
       "Reset profile",
-      "This will clear your profile, swipes and matches.",
+      "This will clear your profile, swipes and matches. You'll stay signed in.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -143,6 +164,20 @@ export default function ProfileScreen() {
         >
           <Feather name="log-out" size={16} color={colors.destructive} />
           <Text style={[styles.dangerText, { color: colors.destructive }]}>
+            Sign out
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onResetProfile}
+          style={({ pressed }) => [
+            styles.dangerBtn,
+            { borderColor: colors.border, marginTop: 10 },
+            pressed && { opacity: 0.7 },
+          ]}
+        >
+          <Feather name="trash-2" size={16} color={colors.mutedForeground} />
+          <Text style={[styles.dangerText, { color: colors.mutedForeground }]}>
             Reset profile
           </Text>
         </Pressable>

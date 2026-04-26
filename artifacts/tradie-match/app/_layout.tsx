@@ -15,29 +15,43 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const { session, loading: authLoading } = useAuth();
   const { ready, user } = useApp();
   const segments = useSegments();
   const r = useRouter();
 
   useEffect(() => {
-    if (!ready) return;
-    const inOnboarding = segments[0] === "onboarding";
-    if (!user && !inOnboarding) {
+    if (authLoading) return;
+
+    const seg0 = segments[0] as string | undefined;
+    const inAuth = seg0 === "auth";
+    const inOnboarding = seg0 === "onboarding";
+
+    if (!session) {
+      // Not signed in — send to auth
+      if (!inAuth) r.replace("/auth");
+    } else if (!ready) {
+      // Signed in but app state loading
+    } else if (!user && !inOnboarding) {
+      // Signed in, no profile yet — go to onboarding
       r.replace("/onboarding");
-    } else if (user && inOnboarding) {
+    } else if (user && (inOnboarding || inAuth)) {
+      // Profile complete — go to main app
       r.replace("/(tabs)");
     }
-  }, [ready, user, segments, r]);
+  }, [authLoading, session, ready, user, segments, r]);
 
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="auth" options={{ headerShown: false, animation: "fade" }} />
       <Stack.Screen
         name="onboarding"
         options={{ headerShown: false, animation: "fade" }}
@@ -72,9 +86,11 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <AppProvider>
-                <RootLayoutNav />
-              </AppProvider>
+              <AuthProvider>
+                <AppProvider>
+                  <RootLayoutNav />
+                </AppProvider>
+              </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

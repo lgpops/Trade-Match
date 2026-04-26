@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "Tradie Match",
-    "slug": "tradie-match",
+    "name": "Red Collar",
+    "slug": "red-collar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tradie-match",
+    "scheme": "redcollar",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A1410"
+      "backgroundColor": "#12121A"
     },
     "ios": {
       "supportsTablet": false
