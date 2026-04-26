@@ -31,6 +31,7 @@ import type { Gender } from "@/constants/seedProfiles";
 import { getTradesForCollar, isTradeForCollar, type TradeKey } from "@/constants/trades";
 import {
   DEFAULT_DISCOVERY_FILTERS,
+  type UserMedia,
   useApp,
   type Mode,
   type ShowMe,
@@ -72,6 +73,8 @@ const REGION_EXAMPLES = [
   "Toronto, Canada",
 ];
 
+const MAX_EXTRA_MEDIA = 5;
+
 const LEGACY_REGION_PLACEHOLDERS = new Set(["Inner West"]);
 
 const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
@@ -111,6 +114,7 @@ export default function Onboarding() {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
   const [profilePhotoUri, setProfilePhotoUri] = useState("");
+  const [media, setMedia] = useState<UserMedia[]>([]);
   const [ethnicity, setEthnicity] = useState<Ethnicity | null>(null);
   const [heightCm, setHeightCm] = useState("175");
   const [collarType, setCollarType] = useState<CollarType>("blue");
@@ -207,7 +211,7 @@ export default function Onboarding() {
       rig: rig.trim(),
       weekendMove: weekendMove.trim(),
       brewOfChoice: brewOfChoice.trim(),
-      media: [],
+      media,
       mode,
       showMe,
       filters: DEFAULT_DISCOVERY_FILTERS,
@@ -271,6 +275,8 @@ export default function Onboarding() {
               setGender={setGenderAndDefaultPreference}
               profilePhotoUri={profilePhotoUri}
               setProfilePhotoUri={setProfilePhotoUri}
+              media={media}
+              setMedia={setMedia}
               ethnicity={ethnicity}
               setEthnicity={setEthnicity}
               heightCm={heightCm}
@@ -431,6 +437,8 @@ function Step0({
   setGender,
   profilePhotoUri,
   setProfilePhotoUri,
+  media,
+  setMedia,
   ethnicity,
   setEthnicity,
   heightCm,
@@ -445,6 +453,8 @@ function Step0({
   setGender: (g: Gender) => void;
   profilePhotoUri: string;
   setProfilePhotoUri: (uri: string) => void;
+  media: UserMedia[];
+  setMedia: (media: UserMedia[]) => void;
   ethnicity: Ethnicity | null;
   setEthnicity: (e: Ethnicity) => void;
   heightCm: string;
@@ -462,6 +472,32 @@ function Step0({
     if (!result.canceled && result.assets[0]?.uri) {
       setProfilePhotoUri(result.assets[0].uri);
     }
+  };
+
+  const addMedia = async () => {
+    if (media.length >= MAX_EXTRA_MEDIA) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_EXTRA_MEDIA - media.length,
+    });
+    if (result.canceled) return;
+    const nextItems: UserMedia[] = result.assets
+      .slice(0, MAX_EXTRA_MEDIA - media.length)
+      .filter((asset) => !!asset.uri)
+      .map((asset) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        uri: asset.uri,
+        type: "image",
+      }));
+    if (nextItems.length > 0) {
+      setMedia([...media, ...nextItems]);
+    }
+  };
+
+  const removeMedia = (id: string) => {
+    setMedia(media.filter((item) => item.id !== id));
   };
 
   return (
@@ -556,6 +592,43 @@ function Step0({
               Required. This is your main profile photo.
             </Text>
           </View>
+        </View>
+      </Field>
+      <Field label="Extra photos">
+        <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+          Add up to 5 more photos now, or add them later from your profile.
+        </Text>
+        <View style={styles.onboardingMediaGrid}>
+          {media.map((item) => (
+            <View key={item.id} style={styles.onboardingMediaTile}>
+              <Image
+                source={{ uri: item.uri }}
+                style={styles.onboardingMediaImage}
+                contentFit="cover"
+              />
+              <Pressable
+                onPress={() => setMedia(media.filter((m) => m.id !== item.id))}
+                style={styles.onboardingMediaRemove}
+              >
+                <Feather name="x" size={14} color="#FFFFFF" />
+              </Pressable>
+            </View>
+          ))}
+          {media.length < MAX_EXTRA_MEDIA ? (
+            <Pressable
+              onPress={addMedia}
+              style={({ pressed }) => [
+                styles.onboardingAddMedia,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                pressed && { opacity: 0.75 },
+              ]}
+            >
+              <Feather name="plus" size={22} color={colors.primary} />
+              <Text style={[styles.onboardingAddMediaText, { color: colors.primary }]}>
+                Add photos
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </Field>
       <Field label="Ethnicity">
@@ -1221,6 +1294,46 @@ const styles = StyleSheet.create({
   },
   photoButtonText: {
     fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  onboardingMediaGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  onboardingMediaTile: {
+    width: 92,
+    height: 116,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+  },
+  onboardingMediaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  onboardingMediaRemove: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  onboardingAddMedia: {
+    width: 92,
+    height: 116,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  onboardingAddMediaText: {
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
   locationButton: {
