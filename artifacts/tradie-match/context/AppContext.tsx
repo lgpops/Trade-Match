@@ -78,6 +78,7 @@ type AppState = {
   matches: Match[];
   messages: Message[];
   saveUser: (user: UserProfile) => Promise<void>;
+  updateUser: (updates: Partial<UserProfile>) => Promise<void>;
   updatePrefs: (
     prefs: Partial<Pick<UserProfile, "mode" | "showMe" | "filters">>,
   ) => Promise<void>;
@@ -207,6 +208,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(next);
     await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
   }, []);
+
+  const updateUser = useCallback<AppState["updateUser"]>(
+    async (updates) => {
+      if (!user) return;
+      const next = hydrateUser({
+        ...user,
+        ...updates,
+        filters: updates.filters
+          ? { ...user.filters, ...updates.filters }
+          : user.filters,
+      });
+      setUser(next);
+      await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+    },
+    [user],
+  );
 
   const updatePrefs = useCallback<AppState["updatePrefs"]>(
     async (prefs) => {
@@ -365,6 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     matches,
     messages,
     saveUser,
+    updateUser,
     updatePrefs,
     resetUser,
     decideOnProfile,

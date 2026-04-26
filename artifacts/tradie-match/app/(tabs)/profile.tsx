@@ -3,11 +3,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,12 +22,14 @@ import {
 import { getTrade } from "@/constants/trades";
 import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
+import type { UserProfile } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, matches, decisions, resetUser } = useApp();
+  const { user, matches, decisions, resetUser, saveUser } = useApp();
+  const [editVisible, setEditVisible] = React.useState(false);
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 + 20 : 84 + insets.bottom;
 
@@ -91,6 +95,17 @@ export default function ProfileScreen() {
           <Text style={[styles.region, { color: colors.mutedForeground }]}>
             {user.yearsOnTools} yrs experience · {formatHeight(user.heightCm)}
           </Text>
+          <Pressable
+            onPress={() => setEditVisible(true)}
+            style={({ pressed }) => [
+              styles.editBtn,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Feather name="edit-2" size={15} color="#FFFFFF" />
+            <Text style={styles.editBtnText}>Edit profile</Text>
+          </Pressable>
         </LinearGradient>
 
         <View style={styles.statsRow}>
@@ -137,24 +152,30 @@ export default function ProfileScreen() {
             value={formatHeight(user.heightCm)}
             colors={colors}
           />
-          <DetailRow
-            icon="truck"
-            label="The rig"
-            value={user.rig}
-            colors={colors}
-          />
-          <DetailRow
-            icon="sun"
-            label="Weekend move"
-            value={user.weekendMove}
-            colors={colors}
-          />
-          <DetailRow
-            icon="coffee"
-            label="Brew of choice"
-            value={user.brewOfChoice}
-            colors={colors}
-          />
+          {user.rig.trim() ? (
+            <DetailRow
+              icon="truck"
+              label="The rig"
+              value={user.rig}
+              colors={colors}
+            />
+          ) : null}
+          {user.weekendMove.trim() ? (
+            <DetailRow
+              icon="sun"
+              label="Weekend move"
+              value={user.weekendMove}
+              colors={colors}
+            />
+          ) : null}
+          {user.brewOfChoice.trim() ? (
+            <DetailRow
+              icon="coffee"
+              label="Brew of choice"
+              value={user.brewOfChoice}
+              colors={colors}
+            />
+          ) : null}
         </View>
 
         <Pressable
@@ -171,7 +192,200 @@ export default function ProfileScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+      <EditProfileModal
+        visible={editVisible}
+        user={user}
+        onClose={() => setEditVisible(false)}
+        onSave={async (next) => {
+          await saveUser(next);
+          setEditVisible(false);
+        }}
+      />
     </View>
+  );
+}
+
+function EditProfileModal({
+  visible,
+  user,
+  onClose,
+  onSave,
+}: {
+  visible: boolean;
+  user: UserProfile;
+  onClose: () => void;
+  onSave: (user: UserProfile) => Promise<void>;
+}) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const [draft, setDraft] = React.useState(user);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (visible) setDraft(user);
+  }, [visible, user]);
+
+  const setField = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const save = async () => {
+    if (!draft.name.trim() || !draft.region.trim() || !draft.bio.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({
+        ...draft,
+        name: draft.name.trim(),
+        region: draft.region.trim(),
+        bio: draft.bio.trim(),
+        customJobTitle: draft.customJobTitle?.trim() || undefined,
+        rig: draft.rig.trim(),
+        weekendMove: draft.weekendMove.trim(),
+        brewOfChoice: draft.brewOfChoice.trim(),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      transparent
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+        <Pressable style={styles.modalBackdropTap} onPress={onClose} />
+        <View
+          style={[
+            styles.modalSheet,
+            {
+              backgroundColor: colors.background,
+              paddingBottom: insets.bottom + 16,
+            },
+          ]}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              Edit profile
+            </Text>
+            <Pressable onPress={onClose} hitSlop={12}>
+              <Feather name="x" size={22} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.modalContent}
+          >
+            <EditField label="Name">
+              <EditInput
+                value={draft.name}
+                onChangeText={(text) => setField("name", text)}
+                placeholder="Your name"
+              />
+            </EditField>
+            <EditField label="Age">
+              <EditInput
+                value={String(draft.age || "")}
+                onChangeText={(text) =>
+                  setField("age", Number(text.replace(/[^0-9]/g, "").slice(0, 2)))
+                }
+                keyboardType="number-pad"
+                placeholder="28"
+              />
+            </EditField>
+            <EditField label="Region">
+              <EditInput
+                value={draft.region}
+                onChangeText={(text) => setField("region", text)}
+                placeholder="City, region or area"
+              />
+            </EditField>
+            <EditField label="Bio">
+              <EditInput
+                value={draft.bio}
+                onChangeText={(text) => setField("bio", text)}
+                placeholder="Tell people about yourself"
+                multiline
+              />
+            </EditField>
+            <EditField label="The rig / work setup (optional)">
+              <EditInput
+                value={draft.rig}
+                onChangeText={(text) => setField("rig", text)}
+                placeholder="Leave blank to hide"
+              />
+            </EditField>
+            <EditField label="Weekend move (optional)">
+              <EditInput
+                value={draft.weekendMove}
+                onChangeText={(text) => setField("weekendMove", text)}
+                placeholder="Leave blank to hide"
+              />
+            </EditField>
+            <EditField label="Brew of choice (optional)">
+              <EditInput
+                value={draft.brewOfChoice}
+                onChangeText={(text) => setField("brewOfChoice", text)}
+                placeholder="Leave blank to hide"
+              />
+            </EditField>
+          </ScrollView>
+          <Pressable
+            onPress={save}
+            disabled={saving}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              { backgroundColor: colors.primary },
+              (pressed || saving) && { opacity: 0.75 },
+            ]}
+          >
+            <Text style={styles.saveBtnText}>
+              {saving ? "Saving..." : "Save changes"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function EditField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  const colors = useColors();
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={[styles.editFieldLabel, { color: colors.mutedForeground }]}>
+        {label}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function EditInput(props: React.ComponentProps<typeof TextInput>) {
+  const colors = useColors();
+  return (
+    <TextInput
+      placeholderTextColor={colors.mutedForeground}
+      {...props}
+      style={[
+        styles.editInput,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          color: colors.foreground,
+        },
+        props.multiline && { minHeight: 110, textAlignVertical: "top" },
+        props.style,
+      ]}
+    />
   );
 }
 
@@ -255,6 +469,20 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     marginTop: 8,
   },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  editBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 24,
@@ -319,6 +547,59 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_500Medium",
     marginTop: 2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBackdropTap: {
+    flex: 1,
+  },
+  modalSheet: {
+    maxHeight: "92%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 18,
+    gap: 18,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.4,
+  },
+  modalContent: {
+    gap: 16,
+    paddingBottom: 8,
+  },
+  editFieldLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.3,
+    textTransform: "uppercase",
+  },
+  editInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
+  },
+  saveBtn: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  saveBtnText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
   },
   dangerBtn: {
     flexDirection: "row",
