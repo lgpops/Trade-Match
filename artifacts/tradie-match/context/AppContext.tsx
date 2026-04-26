@@ -44,7 +44,8 @@ export type Message = {
 };
 
 export type Match = {
-  id: string;
+  id: string;           // profile_id — used as a stable client-side key
+  dbId: number | null;  // matches.id (bigint PK) — needed for messages FK
   profile: SeedProfile;
   matchedAt: number;
   lastReadAt: number;
@@ -174,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               if (!sp) return null;
               return {
                 id: m.profile_id,
+                dbId: m.id as number,
                 profile: sp,
                 matchedAt: new Date(m.matched_at).getTime(),
                 lastReadAt: m.last_read_at ? new Date(m.last_read_at).getTime() : 0,
@@ -184,10 +186,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setMatches(hydrated);
         }
 
-        // Load messages
+        // Load messages — join to matches to resolve profile_id (our client-side matchId)
         const { data: msgs } = await supabase
           .from("messages")
-          .select("*")
+          .select("id, match_id, text, from_me, created_at, matches!inner(profile_id)")
           .eq("user_id", uid)
           .order("created_at", { ascending: true });
 
@@ -195,7 +197,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setMessages(
             msgs.map((m) => ({
               id: m.id,
-              matchId: m.match_id,
+              // Use profile_id as the client-side matchId so existing UI works
+              matchId: (m.matches as unknown as { profile_id: string }).profile_id,
               text: m.text,
               fromMe: m.from_me,
               createdAt: new Date(m.created_at).getTime(),
@@ -280,6 +283,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const now = new Date().toISOString();
           const match: Match = {
             id: profile.id,
+            dbId: null, // will be updated after DB insert resolves
             profile,
             matchedAt: Date.now(),
             lastReadAt: 0,
@@ -287,13 +291,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
           const nextMatches = [match, ...matches.filter((m) => m.id !== profile.id)];
           setMatches(nextMatches);
-          void supabase.from("matches").upsert({
-            user_id: uid,
-            profile_id: profileId,
-            matched_at: now,
-            last_read_at: null,
-            mode: user?.mode ?? "dating",
-          });
+          void (async () => {
+            const { data } = await supabase
+              .from("matches")
+              .upsert(
+                {
+                  user_id: uid,
+                  profile_id: profileId,
+                  matched_at: now,
+                  last_read_at: null,
+                  mode: user?.mode ?? "dating",
+                },
+                { onConflict: "user_id,profile_id" },
+              )
+              .select("id")
+              .single();
+            if (data?.id) {
+              setMatches((curr) =>
+                curr.map((m) =>
+                  m.id === profile.id ? { ...m, dbId: data.id as number } : m,
+                ),
+              );
+            }
+          })();
           return { matched: true, profile };
         }
       }
@@ -308,6 +328,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const trimmed = text.trim();
       if (!trimmed) return;
 
+      const match = matches.find((m) => m.id === matchId);
+      const dbMatchId = match?.dbId ?? null;
+
       const msg: Message = {
         id: newId(),
         matchId,
@@ -315,19 +338,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fromMe: true,
         createdAt: Date.now(),
       };
-      const next = [...messages, msg];
-      setMessages(next);
+      setMessages((curr) => [...curr, msg]);
 
-      void supabase.from("messages").insert({
-        id: msg.id,
-        user_id: uid,
-        match_id: matchId,
-        text: trimmed,
-        from_me: true,
-        created_at: new Date(msg.createdAt).toISOString(),
-      });
+      // Only persist if we have the DB match id (FK constraint)
+      if (dbMatchId !== null) {
+        void supabase.from("messages").insert({
+          id: msg.id,
+          user_id: uid,
+          match_id: dbMatchId,
+          text: trimmed,
+          from_me: true,
+          created_at: new Date(msg.createdAt).toISOString(),
+        });
+      }
 
-      const match = matches.find((m) => m.id === matchId);
       const pool =
         match?.mode === "mates" ? AUTO_REPLIES_MATES : AUTO_REPLIES_DATING;
       const reply = pool[Math.floor(Math.random() * pool.length)]!;
@@ -342,17 +366,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createdAt: Date.now(),
         };
         setMessages((curr) => [...curr, replyMsg]);
-        void supabase.from("messages").insert({
-          id: replyMsg.id,
-          user_id: uid,
-          match_id: matchId,
-          text: reply,
-          from_me: false,
-          created_at: new Date(replyMsg.createdAt).toISOString(),
-        });
+        if (dbMatchId !== null) {
+          void supabase.from("messages").insert({
+            id: replyMsg.id,
+            user_id: uid,
+            match_id: dbMatchId,
+            text: reply,
+            from_me: false,
+            created_at: new Date(replyMsg.createdAt).toISOString(),
+          });
+        }
       }, delay);
     },
-    [uid, messages, matches],
+    [uid, matches],
   );
 
   const markMatchRead = useCallback<AppState["markMatchRead"]>(
@@ -364,13 +390,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           m.id === matchId ? { ...m, lastReadAt: Date.now() } : m,
         ),
       );
-      void supabase
-        .from("matches")
-        .update({ last_read_at: now })
-        .eq("user_id", uid)
-        .eq("profile_id", matchId);
+      const match = matches.find((m) => m.id === matchId);
+      if (match?.dbId != null) {
+        void supabase
+          .from("matches")
+          .update({ last_read_at: now })
+          .eq("id", match.dbId);
+      }
     },
-    [uid],
+    [uid, matches],
   );
 
   const profiles = useMemo(() => {
