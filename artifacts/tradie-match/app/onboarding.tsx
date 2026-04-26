@@ -66,6 +66,12 @@ const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
   { value: "everyone", label: "Everyone" },
 ];
 
+function defaultShowMeForGender(gender: Gender | null): ShowMe {
+  if (gender === "female") return "men";
+  if (gender === "male") return "women";
+  return "everyone";
+}
+
 export default function Onboarding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -90,6 +96,18 @@ export default function Onboarding() {
   const [rig, setRig] = useState("");
   const [weekendMove, setWeekendMove] = useState("");
   const [brewOfChoice, setBrewOfChoice] = useState("");
+
+  const setGenderAndDefaultPreference = (nextGender: Gender) => {
+    setGender(nextGender);
+    if (mode === "dating") {
+      setShowMe(defaultShowMeForGender(nextGender));
+    }
+  };
+
+  const setModeAndDefaultPreference = (nextMode: Mode) => {
+    setMode(nextMode);
+    setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(gender));
+  };
 
   const canContinue = useMemo(() => {
     if (step === 0) {
@@ -209,7 +227,7 @@ export default function Onboarding() {
               age={age}
               setAge={setAge}
               gender={gender}
-              setGender={setGender}
+              setGender={setGenderAndDefaultPreference}
               ethnicity={ethnicity}
               setEthnicity={setEthnicity}
               heightCm={heightCm}
@@ -241,7 +259,7 @@ export default function Onboarding() {
             <Step2
               colors={colors}
               mode={mode}
-              setMode={setMode}
+              setMode={setModeAndDefaultPreference}
               showMe={showMe}
               setShowMe={setShowMe}
             />

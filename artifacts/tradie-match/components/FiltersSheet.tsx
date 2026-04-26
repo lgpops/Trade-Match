@@ -58,6 +58,12 @@ const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
   { value: "everyone", label: "Everyone" },
 ];
 
+function defaultShowMeForGender(gender: "male" | "female" | undefined): ShowMe {
+  if (gender === "female") return "men";
+  if (gender === "male") return "women";
+  return "everyone";
+}
+
 export function FiltersSheet({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -109,6 +115,11 @@ export function FiltersSheet({ visible, onClose }: Props) {
     });
   };
 
+  const selectMode = (nextMode: Mode) => {
+    setMode(nextMode);
+    setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(user?.gender));
+  };
+
   return (
     <Modal
       transparent
@@ -152,7 +163,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
                   return (
                     <Pressable
                       key={opt.value}
-                      onPress={() => setMode(opt.value)}
+                      onPress={() => selectMode(opt.value)}
                       style={({ pressed }) => [
                         styles.modeCard,
                         {

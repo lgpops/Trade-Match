@@ -34,6 +34,11 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
   const colors = useColors();
   const trade = getTrade(profile.trade);
   const position = useRef(new Animated.ValueXY()).current;
+  const isTopRef = useRef(isTop);
+
+  useEffect(() => {
+    isTopRef.current = isTop;
+  }, [isTop]);
 
   useEffect(() => {
     position.setValue({ x: 0, y: 0 });
@@ -58,9 +63,9 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTop,
+      onStartShouldSetPanResponder: () => isTopRef.current,
       onMoveShouldSetPanResponder: (_, g) =>
-        isTop && (Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5),
+        isTopRef.current && (Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5),
       onPanResponderMove: (_, g) => {
         position.setValue({ x: g.dx, y: g.dy });
       },
