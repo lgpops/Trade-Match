@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -90,12 +91,20 @@ export default function Onboarding() {
   const [trade, setTrade] = useState<TradeKey | null>(null);
   const [customJobTitle, setCustomJobTitle] = useState("");
   const [years, setYears] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [mode, setMode] = useState<Mode>("dating");
   const [showMe, setShowMe] = useState<ShowMe>("everyone");
   const [bio, setBio] = useState("");
   const [rig, setRig] = useState("");
   const [weekendMove, setWeekendMove] = useState("");
   const [brewOfChoice, setBrewOfChoice] = useState("");
+
+  useEffect(() => {
+    if (step === 2) {
+      setShowMe(mode === "mates" ? "everyone" : defaultShowMeForGender(gender));
+    }
+  }, [gender, mode, step]);
 
   const setGenderAndDefaultPreference = (nextGender: Gender) => {
     setGender(nextGender);
@@ -107,6 +116,41 @@ export default function Onboarding() {
   const setModeAndDefaultPreference = (nextMode: Mode) => {
     setMode(nextMode);
     setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(gender));
+  };
+
+  const useCurrentLocation = async () => {
+    setLocationError("");
+    setLocating(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        setLocationError("Location permission was not granted.");
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const [place] = await Location.reverseGeocodeAsync(position.coords);
+      const resolvedRegion = [
+        place?.city || place?.district || place?.subregion || place?.region,
+        place?.region,
+        place?.country,
+      ]
+        .filter(Boolean)
+        .filter((part, index, parts) => parts.indexOf(part) === index)
+        .join(", ");
+
+      if (resolvedRegion) {
+        setRegion(resolvedRegion);
+      } else {
+        setLocationError("Could not identify your region from this location.");
+      }
+    } catch {
+      setLocationError("Could not fetch your current location.");
+    } finally {
+      setLocating(false);
+    }
   };
 
   const canContinue = useMemo(() => {
@@ -148,9 +192,6 @@ export default function Onboarding() {
 
   const onNext = async () => {
     if (step < 4) {
-      if (step === 1) {
-        setShowMe(mode === "mates" ? "everyone" : defaultShowMeForGender(gender));
-      }
       setStep((s) => (s + 1) as Step);
       return;
     }
@@ -265,6 +306,7 @@ export default function Onboarding() {
               setMode={setModeAndDefaultPreference}
               showMe={showMe}
               setShowMe={setShowMe}
+              gender={gender}
             />
           )}
           {step === 3 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
@@ -541,6 +583,42 @@ function Step1({
   setRegion: (s: string) => void;
 }) {
   const tradeOptions = getTradesForCollar(collarType);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
+  const useCurrentLocation = async () => {
+    try {
+      setLocationError("");
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationError("Location permission was not granted.");
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({});
+      const [place] = await Location.reverseGeocodeAsync(position.coords);
+      const resolvedRegion = [
+        place?.district,
+        place?.city,
+        place?.region,
+        place?.country,
+      ]
+        .filter(Boolean)
+        .filter((part, index, arr) => arr.indexOf(part) === index)
+        .slice(0, 2)
+        .join(", ");
+      if (resolvedRegion) {
+        setRegion(resolvedRegion);
+      } else {
+        setLocationError("Could not identify your region from this location.");
+      }
+    } catch {
+      setLocationError("Could not fetch your current location.");
+    } finally {
+      setLocating(false);
+    }
+  };
+
   return (
     <View style={{ gap: 18 }}>
       <Heading
@@ -671,9 +749,32 @@ function Step1({
         <Input
           value={region}
           onChangeText={setRegion}
-          placeholder="Inner West"
+          placeholder="City, region or area"
           autoCapitalize="words"
         />
+        <Pressable
+          onPress={useCurrentLocation}
+          disabled={locating}
+          style={({ pressed }) => [
+            styles.locationButton,
+            { borderColor: colors.border, backgroundColor: colors.card },
+            (pressed || locating) && { opacity: 0.75 },
+          ]}
+        >
+          <Feather name="map-pin" size={16} color={colors.primary} />
+          <Text style={[styles.locationButtonText, { color: colors.primary }]}>
+            {locating ? "Finding your region..." : "Use current location"}
+          </Text>
+        </Pressable>
+        {locationError ? (
+          <Text style={[styles.fieldHint, { color: colors.destructive }]}>
+            {locationError}
+          </Text>
+        ) : (
+          <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
+            Type a region or share your phone location to fill this automatically.
+          </Text>
+        )}
       </Field>
     </View>
   );
@@ -685,13 +786,28 @@ function Step2({
   setMode,
   showMe,
   setShowMe,
+  gender,
 }: {
   colors: ReturnType<typeof useColors>;
   mode: Mode;
   setMode: (m: Mode) => void;
   showMe: ShowMe;
   setShowMe: (s: ShowMe) => void;
+  gender: Gender | null;
 }) {
+  React.useEffect(() => {
+    if (mode === "dating") {
+      setShowMe(defaultShowMeForGender(gender));
+    } else {
+      setShowMe("everyone");
+    }
+  }, [gender, mode, setShowMe]);
+
+  const selectedShowMe =
+    mode === "dating" && showMe === "everyone"
+      ? defaultShowMeForGender(gender)
+      : showMe;
+
   return (
     <View style={{ gap: 22 }}>
       <Heading
@@ -774,7 +890,7 @@ function Step2({
       <Field label="Show me">
         <View style={styles.segments}>
           {SHOW_OPTIONS.map((opt) => {
-            const selected = showMe === opt.value;
+            const selected = selectedShowMe === opt.value;
             return (
               <Pressable
                 key={opt.value}
@@ -1008,6 +1124,19 @@ const styles = StyleSheet.create({
   fieldHint: {
     fontSize: 12,
     fontFamily: "Inter_500Medium",
+  },
+  locationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  locationButtonText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
   modeCard: {
     flexDirection: "row",
