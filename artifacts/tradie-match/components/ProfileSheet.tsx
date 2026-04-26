@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   likeBtn: {
-    shadowColor: "#E85D1A",
+    shadowColor: "#D72638",
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
