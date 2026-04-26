@@ -14,12 +14,14 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { HeightSlider } from "@/components/HeightSlider";
 import { TradeBadge } from "@/components/TradeBadge";
 import {
   COLLAR_OPTIONS,
   ETHNICITY_OPTIONS,
+  HEIGHT_SLIDER_MAX_CM,
+  HEIGHT_SLIDER_MIN_CM,
   cmToFeetInches,
-  formatHeight,
   type CollarType,
   type Ethnicity,
 } from "@/constants/demographics";
@@ -524,18 +526,19 @@ function Step0({
         </View>
       </Field>
       <Field label="Height">
-        <View style={[styles.heightInputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Input
-            value={heightCm}
-            onChangeText={(t) => setHeightCm(t.replace(/[^0-9]/g, "").slice(0, 3))}
-            placeholder="175"
-            keyboardType="number-pad"
-            maxLength={3}
-            style={styles.heightInput}
+        <View
+          style={[
+            styles.heightSliderCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <HeightSlider
+            label="Your height"
+            value={parsedHeight}
+            min={HEIGHT_SLIDER_MIN_CM}
+            max={HEIGHT_SLIDER_MAX_CM}
+            onChange={(value) => setHeightCm(String(value))}
           />
-          <Text style={[styles.heightPreview, { color: colors.mutedForeground }]}>
-            {formatHeight(parsedHeight)}
-          </Text>
         </View>
         <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
           Equivalent to {feet} ft {inches} in.
@@ -1117,22 +1120,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
   },
-  heightInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderRadius: 14,
+  heightSliderCard: {
+    borderRadius: 16,
     borderWidth: 1,
-    paddingRight: 14,
-  },
-  heightInput: {
-    flex: 1,
-    borderWidth: 0,
-    backgroundColor: "transparent",
-  },
-  heightPreview: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
+    padding: 14,
   },
   fieldHint: {
     fontSize: 12,

@@ -54,6 +54,8 @@ export const ETHNICITY_FILTER_OPTIONS: {
 }[] = [{ value: "everyone", label: "All" }, ...ETHNICITY_OPTIONS];
 
 export const DEFAULT_MIN_HEIGHT_CM = 150;
+export const HEIGHT_SLIDER_MIN_CM = 140;
+export const HEIGHT_SLIDER_MAX_CM = 215;
 
 export function getCollarLabel(value: CollarPreference | undefined): string {
   if (!value || value === "everyone") return "All collars";

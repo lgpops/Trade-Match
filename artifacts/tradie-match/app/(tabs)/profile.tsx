@@ -18,8 +18,11 @@ import {
   formatCollarType,
   formatEthnicity,
   formatHeight,
+  HEIGHT_SLIDER_MAX_CM,
+  HEIGHT_SLIDER_MIN_CM,
 } from "@/constants/demographics";
 import { getTrade } from "@/constants/trades";
+import { HeightSlider } from "@/components/HeightSlider";
 import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
 import type { UserProfile } from "@/context/AppContext";
@@ -301,6 +304,22 @@ function EditProfileModal({
                 onChangeText={(text) => setField("region", text)}
                 placeholder="City, region or area"
               />
+            </EditField>
+            <EditField label="Height">
+              <View
+                style={[
+                  styles.heightSliderCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                <HeightSlider
+                  label="Your height"
+                  value={draft.heightCm}
+                  min={HEIGHT_SLIDER_MIN_CM}
+                  max={HEIGHT_SLIDER_MAX_CM}
+                  onChange={(value) => setField("heightCm", value)}
+                />
+              </View>
             </EditField>
             <EditField label="Bio">
               <EditInput
@@ -590,6 +609,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 16,
     fontFamily: "Inter_500Medium",
+  },
+  heightSliderCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
   },
   saveBtn: {
     paddingVertical: 16,

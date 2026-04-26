@@ -10,12 +10,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { HeightSlider } from "@/components/HeightSlider";
 import {
   COLLAR_FILTER_OPTIONS,
   DEFAULT_MIN_HEIGHT_CM,
   ETHNICITY_FILTER_OPTIONS,
+  HEIGHT_SLIDER_MAX_CM,
+  HEIGHT_SLIDER_MIN_CM,
   formatMinHeightPreference,
-  formatHeight,
   type CollarPreference,
   type EthnicityPreference,
 } from "@/constants/demographics";
@@ -106,13 +108,6 @@ export function FiltersSheet({ visible, onClose }: Props) {
       },
     });
     onClose();
-  };
-
-  const adjustMinHeight = (delta: number) => {
-    setMinHeightCm((current) => {
-      const next = Math.max(DEFAULT_MIN_HEIGHT_CM, current + delta);
-      return next;
-    });
   };
 
   const selectMode = (nextMode: Mode) => {
@@ -285,11 +280,12 @@ export function FiltersSheet({ visible, onClose }: Props) {
                 {formatMinHeightPreference(minHeightCm)}
               </Text>
               <View style={[styles.heightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <HeightStepper
+                <HeightSlider
                   label="Minimum height"
-                  value={formatHeight(minHeightCm)}
-                  onDecrease={() => adjustMinHeight(-5)}
-                  onIncrease={() => adjustMinHeight(5)}
+                  value={minHeightCm}
+                  min={HEIGHT_SLIDER_MIN_CM}
+                  max={HEIGHT_SLIDER_MAX_CM}
+                  onChange={setMinHeightCm}
                 />
               </View>
             </View>
@@ -378,44 +374,6 @@ function Chip({
         {label}
       </Text>
     </Pressable>
-  );
-}
-
-function HeightStepper({
-  label,
-  value,
-  onDecrease,
-  onIncrease,
-}: {
-  label: string;
-  value: string;
-  onDecrease: () => void;
-  onIncrease: () => void;
-}) {
-  const colors = useColors();
-  return (
-    <View style={styles.heightStepper}>
-      <Text style={[styles.heightLabel, { color: colors.mutedForeground }]}>
-        {label}
-      </Text>
-      <View style={styles.heightControls}>
-        <Pressable
-          onPress={onDecrease}
-          style={[styles.heightButton, { backgroundColor: colors.secondary }]}
-        >
-          <Feather name="minus" size={16} color={colors.foreground} />
-        </Pressable>
-        <Text style={[styles.heightValue, { color: colors.foreground }]}>
-          {value}
-        </Text>
-        <Pressable
-          onPress={onIncrease}
-          style={[styles.heightButton, { backgroundColor: colors.secondary }]}
-        >
-          <Feather name="plus" size={16} color={colors.foreground} />
-        </Pressable>
-      </View>
-    </View>
   );
 }
 
@@ -537,34 +495,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     gap: 14,
-  },
-  heightStepper: {
-    gap: 8,
-  },
-  heightLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  heightControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  heightButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heightValue: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
   },
   saveBtn: {
     paddingVertical: 16,
