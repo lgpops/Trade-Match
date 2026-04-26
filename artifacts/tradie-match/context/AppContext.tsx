@@ -14,7 +14,6 @@ import {
   type SeedProfile,
 } from "@/constants/seedProfiles";
 import {
-  DEFAULT_MAX_HEIGHT_CM,
   DEFAULT_MIN_HEIGHT_CM,
   isHeightWithinPreference,
   type CollarPreference,
@@ -31,7 +30,6 @@ export type DiscoveryFilters = {
   collarPreference: CollarPreference;
   ethnicityPreference: EthnicityPreference;
   minHeightCm: number;
-  maxHeightCm: number;
 };
 
 export type UserProfile = {
@@ -128,7 +126,6 @@ export const DEFAULT_DISCOVERY_FILTERS: DiscoveryFilters = {
   collarPreference: "everyone",
   ethnicityPreference: "everyone",
   minHeightCm: DEFAULT_MIN_HEIGHT_CM,
-  maxHeightCm: DEFAULT_MAX_HEIGHT_CM,
 };
 
 type StoredUserProfile = Partial<UserProfile> &
@@ -341,7 +338,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         !isHeightWithinPreference(
           p.heightCm,
           user.filters.minHeightCm,
-          user.filters.maxHeightCm,
         )
       ) {
         return false;

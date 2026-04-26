@@ -12,10 +12,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   COLLAR_FILTER_OPTIONS,
-  DEFAULT_MAX_HEIGHT_CM,
   DEFAULT_MIN_HEIGHT_CM,
   ETHNICITY_FILTER_OPTIONS,
-  formatHeightRange,
+  formatMinHeightPreference,
   formatHeight,
   type CollarPreference,
   type EthnicityPreference,
@@ -71,7 +70,6 @@ export function FiltersSheet({ visible, onClose }: Props) {
   const [ethnicityPreference, setEthnicityPreference] =
     useState<EthnicityPreference>("everyone");
   const [minHeightCm, setMinHeightCm] = useState(DEFAULT_MIN_HEIGHT_CM);
-  const [maxHeightCm, setMaxHeightCm] = useState(DEFAULT_MAX_HEIGHT_CM);
 
   React.useEffect(() => {
     if (visible && user) {
@@ -88,9 +86,6 @@ export function FiltersSheet({ visible, onClose }: Props) {
       setMinHeightCm(
         user.filters?.minHeightCm ?? DEFAULT_DISCOVERY_FILTERS.minHeightCm,
       );
-      setMaxHeightCm(
-        user.filters?.maxHeightCm ?? DEFAULT_DISCOVERY_FILTERS.maxHeightCm,
-      );
     }
   }, [visible, user]);
 
@@ -102,7 +97,6 @@ export function FiltersSheet({ visible, onClose }: Props) {
         collarPreference,
         ethnicityPreference,
         minHeightCm,
-        maxHeightCm,
       },
     });
     onClose();
@@ -110,14 +104,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
 
   const adjustMinHeight = (delta: number) => {
     setMinHeightCm((current) => {
-      const next = Math.max(DEFAULT_MIN_HEIGHT_CM, Math.min(current + delta, maxHeightCm));
-      return next;
-    });
-  };
-
-  const adjustMaxHeight = (delta: number) => {
-    setMaxHeightCm((current) => {
-      const next = Math.min(DEFAULT_MAX_HEIGHT_CM, Math.max(current + delta, minHeightCm));
+      const next = Math.max(DEFAULT_MIN_HEIGHT_CM, current + delta);
       return next;
     });
   };
@@ -284,21 +271,14 @@ export function FiltersSheet({ visible, onClose }: Props) {
                 HEIGHT
               </Text>
               <Text style={[styles.filterSummary, { color: colors.foreground }]}>
-                {formatHeightRange(minHeightCm, maxHeightCm)}
+                {formatMinHeightPreference(minHeightCm)}
               </Text>
               <View style={[styles.heightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <HeightStepper
-                  label="Minimum"
+                  label="Minimum height"
                   value={formatHeight(minHeightCm)}
                   onDecrease={() => adjustMinHeight(-5)}
                   onIncrease={() => adjustMinHeight(5)}
-                />
-                <View style={[styles.heightDivider, { backgroundColor: colors.border }]} />
-                <HeightStepper
-                  label="Maximum"
-                  value={formatHeight(maxHeightCm)}
-                  onDecrease={() => adjustMaxHeight(-5)}
-                  onIncrease={() => adjustMaxHeight(5)}
                 />
               </View>
             </View>
@@ -574,9 +554,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     fontFamily: "Inter_700Bold",
-  },
-  heightDivider: {
-    height: StyleSheet.hairlineWidth,
   },
   saveBtn: {
     paddingVertical: 16,

@@ -54,7 +54,6 @@ export const ETHNICITY_FILTER_OPTIONS: {
 }[] = [{ value: "everyone", label: "All" }, ...ETHNICITY_OPTIONS];
 
 export const DEFAULT_MIN_HEIGHT_CM = 150;
-export const DEFAULT_MAX_HEIGHT_CM = 210;
 
 export function getCollarLabel(value: CollarPreference | undefined): string {
   if (!value || value === "everyone") return "All collars";
@@ -94,14 +93,15 @@ export function cmToFeetInches(cm: number): { feet: number; inches: number } {
   };
 }
 
-export function formatHeightRange(minHeightCm: number, maxHeightCm: number): string {
-  return `${formatHeight(minHeightCm)} - ${formatHeight(maxHeightCm)}`;
+export function formatMinHeightPreference(minHeightCm: number): string {
+  return minHeightCm <= DEFAULT_MIN_HEIGHT_CM
+    ? "Any height"
+    : `${formatHeight(minHeightCm)} and up`;
 }
 
 export function isHeightWithinPreference(
   heightCm: number,
   minHeightCm: number,
-  maxHeightCm: number,
 ): boolean {
-  return heightCm >= minHeightCm && heightCm <= maxHeightCm;
+  return heightCm >= minHeightCm;
 }
