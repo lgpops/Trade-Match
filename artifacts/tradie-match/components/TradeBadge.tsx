@@ -10,6 +10,7 @@ type Props = {
   customJobTitle?: string;
   label?: string;
   size?: "sm" | "md" | "lg";
+  customLabel?: string;
 };
 
 export function TradeBadge({ job, trade, customJobTitle, label: labelOverride, size = "md" }: Props) {

@@ -55,7 +55,7 @@ const MODE_OPTIONS: {
   {
     value: "dating",
     label: "Dating",
-    sub: "Looking for someone special",
+    sub: "Just looking for love",
     icon: "heart",
   },
   {
