@@ -25,6 +25,7 @@ import type { TradeKey } from "@/constants/trades";
 
 export type Mode = "dating" | "mates";
 export type ShowMe = "men" | "women" | "everyone";
+export type CollarType = "blue" | "white";
 
 export type DiscoveryFilters = {
   collarPreference: CollarPreference;
@@ -46,8 +47,14 @@ export type UserProfile = {
   ethnicity: Ethnicity;
   heightCm: number;
   trade: TradeKey;
+<<<<<<< HEAD
   jobTitle?: string;
   profilePhotoUri?: string;
+=======
+  customJobTitle?: string;
+  profilePhotoUri?: string;
+  media: UserMedia[];
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   yearsOnTools: number;
   region: string;
   bio: string;
@@ -128,7 +135,8 @@ const AUTO_REPLIES_MATES = [
   "What ute you driving these days",
 ];
 
-const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const newId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 export const DEFAULT_DISCOVERY_FILTERS: DiscoveryFilters = {
   collarPreference: "everyone",
@@ -182,7 +190,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const hydrated = parsed
             .map((mm) => {
               const profile = SEED_PROFILES.find((p) => p.id === mm.profile.id);
-              return profile ? { ...mm, profile, mode: mm.mode ?? "dating" } : null;
+              return profile
+                ? { ...mm, profile, mode: mm.mode ?? "dating" }
+                : null;
             })
             .filter(Boolean) as Match[];
           setMatches(hydrated);
@@ -196,16 +206,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const persistDecisions = useCallback(async (next: Record<string, Decision>) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.decisions, JSON.stringify(next));
-  }, []);
+  const persistDecisions = useCallback(
+    async (next: Record<string, Decision>) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.decisions, JSON.stringify(next));
+    },
+    [],
+  );
 
   const persistMatches = useCallback(async (next: Match[]) => {
     const serializable = next.map((m) => ({
       ...m,
       profile: { ...m.profile, photo: undefined },
     }));
-    await AsyncStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(serializable));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.matches,
+      JSON.stringify(serializable),
+    );
   }, []);
 
   const persistMessages = useCallback(async (next: Message[]) => {
@@ -279,7 +295,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             lastReadAt: 0,
             mode: user?.mode ?? "dating",
           };
-          const nextMatches = [match, ...matches.filter((m) => m.id !== profile.id)];
+          const nextMatches = [
+            match,
+            ...matches.filter((m) => m.id !== profile.id),
+          ];
           setMatches(nextMatches);
           void persistMatches(nextMatches);
           return { matched: true, profile };

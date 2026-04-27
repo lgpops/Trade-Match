@@ -19,8 +19,31 @@ import { TRADES, type TradeKey } from "@/constants/trades";
 import { useApp, type Mode, type ShowMe } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-type Step = 0 | 1 | 2 | 3 | 4;
-const TOTAL_STEPS = 5;
+type Step = 0 | 1 | 2 | 3 | 4 | 5;
+const TOTAL_STEPS = 6;
+
+const COLLAR_OPTIONS: {
+  value: CollarType;
+  label: string;
+  sub: string;
+  icon: keyof typeof Feather.glyphMap;
+  color: string;
+}[] = [
+  {
+    value: "blue",
+    label: "Blue collar",
+    sub: "Tools, sites, shifts and hands-on work.",
+    icon: "tool",
+    color: "#2563EB",
+  },
+  {
+    value: "white",
+    label: "White collar",
+    sub: "Office, desk, professional and corporate work.",
+    icon: "briefcase",
+    color: "#64748B",
+  },
+];
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "male", label: "Man" },
@@ -61,12 +84,17 @@ export default function Onboarding() {
   const bottomInset = Platform.OS === "web" ? 34 : insets.bottom;
 
   const [step, setStep] = useState<Step>(0);
+  const [collar, setCollar] = useState<CollarType | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
   const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState<TradeKey | null>(null);
+<<<<<<< HEAD
   const [jobTitle, setJobTitle] = useState("");
+=======
+  const [customJobTitle, setCustomJobTitle] = useState("");
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   const [years, setYears] = useState("");
   const [mode, setMode] = useState<Mode>("dating");
   const [showMe, setShowMe] = useState<ShowMe>("everyone");
@@ -76,6 +104,7 @@ export default function Onboarding() {
   const [brewOfChoice, setBrewOfChoice] = useState("");
 
   const canContinue = useMemo(() => {
+<<<<<<< HEAD
     if (step === 0) return name.trim().length > 0 && Number(age) >= 18 && !!gender;
     if (step === 1) {
       return (
@@ -83,27 +112,69 @@ export default function Onboarding() {
         (trade !== "red_collar" || jobTitle.trim().length > 0) &&
         Number(years) >= 0 &&
         suburb.trim().length > 0
+=======
+    if (step === 0) {
+      return (
+        name.trim().length > 0 &&
+        Number(age) >= 18 &&
+        !!gender &&
+        profilePhotoUri.trim().length > 0 &&
+        !!ethnicity &&
+        Number(heightCm) >= 140
+      );
+    }
+    if (step === 1) {
+      return (
+        !!trade &&
+        Number(years) >= 0 &&
+        region.trim().length > 0 &&
+        (trade !== "other" || customJobTitle.trim().length > 0)
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
       );
     }
     if (step === 2) return !!mode && !!showMe;
     if (step === 3) return bio.trim().length >= 10;
     return true;
+<<<<<<< HEAD
   }, [step, name, age, gender, trade, jobTitle, years, suburb, mode, showMe, bio]);
+=======
+  }, [
+    step,
+    name,
+    age,
+    gender,
+    profilePhotoUri,
+    ethnicity,
+    heightCm,
+    trade,
+    years,
+    region,
+    customJobTitle,
+    mode,
+    showMe,
+    bio,
+  ]);
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
 
   const onNext = async () => {
-    if (step < 4) {
+    if (step < 5) {
       setStep((s) => (s + 1) as Step);
       return;
     }
     if (!trade || !gender) return;
     await saveUser({
+      collarType: collar,
       name: name.trim(),
       age: Number(age),
       gender,
       trade,
+<<<<<<< HEAD
       ...(trade === "red_collar" && jobTitle.trim()
         ? { jobTitle: jobTitle.trim() }
         : {}),
+=======
+      customJobTitle: trade === "other" ? customJobTitle.trim() : undefined,
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
       yearsOnTools: Number(years || 0),
       suburb: suburb.trim(),
       bio: bio.trim(),
@@ -162,6 +233,9 @@ export default function Onboarding() {
       >
         <View style={styles.body}>
           {step === 0 && (
+            <StepCollar colors={colors} collar={collar} setCollar={setCollar} />
+          )}
+          {step === 1 && (
             <Step0
               colors={colors}
               name={name}
@@ -172,23 +246,37 @@ export default function Onboarding() {
               setGender={setGender}
             />
           )}
-          {step === 1 && (
+          {step === 2 && (
             <Step1
               colors={colors}
               trade={trade}
+<<<<<<< HEAD
               setTrade={(t) => {
                 setTrade(t);
                 if (t !== "red_collar") setJobTitle("");
               }}
               jobTitle={jobTitle}
               setJobTitle={setJobTitle}
+=======
+              setTrade={setTrade}
+              collarType={collarType}
+              setCollarType={(nextCollar) => {
+                setCollarType(nextCollar);
+                if (trade && !isTradeForCollar(trade, nextCollar)) {
+                  setTrade(null);
+                  setCustomJobTitle("");
+                }
+              }}
+              customJobTitle={customJobTitle}
+              setCustomJobTitle={setCustomJobTitle}
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
               years={years}
               setYears={setYears}
               suburb={suburb}
               setSuburb={setSuburb}
             />
           )}
-          {step === 2 && (
+          {step === 3 && (
             <Step2
               colors={colors}
               mode={mode}
@@ -197,8 +285,8 @@ export default function Onboarding() {
               setShowMe={setShowMe}
             />
           )}
-          {step === 3 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
-          {step === 4 && (
+          {step === 4 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
+          {step === 5 && (
             <Step4
               colors={colors}
               rig={rig}
@@ -247,6 +335,85 @@ export default function Onboarding() {
             color={canContinue ? "#FFFFFF" : colors.mutedForeground}
           />
         </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function StepCollar({
+  colors,
+  collar,
+  setCollar,
+}: {
+  colors: ReturnType<typeof useColors>;
+  collar: CollarType | null;
+  setCollar: (c: CollarType) => void;
+}) {
+  return (
+    <View style={{ gap: 18 }}>
+      <Heading
+        eyebrow="STEP 1 OF 6"
+        title="Choose your collar"
+        sub="Start by telling Red Collar what kind of work world you're in."
+        colors={colors}
+      />
+
+      <View style={{ gap: 12 }}>
+        {COLLAR_OPTIONS.map((opt) => {
+          const selected = collar === opt.value;
+          return (
+            <Pressable
+              key={opt.value}
+              onPress={() => setCollar(opt.value)}
+              style={({ pressed }) => [
+                styles.collarCard,
+                {
+                  backgroundColor: selected ? colors.accent : colors.card,
+                  borderColor: selected ? opt.color : colors.border,
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.collarIcon,
+                  { backgroundColor: selected ? opt.color : colors.secondary },
+                ]}
+              >
+                <Feather
+                  name={opt.icon}
+                  size={24}
+                  color={selected ? "#FFFFFF" : colors.foreground}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.collarLabel, { color: colors.foreground }]}
+                >
+                  {opt.label}
+                </Text>
+                <Text
+                  style={[styles.collarSub, { color: colors.mutedForeground }]}
+                >
+                  {opt.sub}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.radio,
+                  {
+                    borderColor: selected ? opt.color : colors.border,
+                    backgroundColor: selected ? opt.color : "transparent",
+                  },
+                ]}
+              >
+                {selected ? (
+                  <Feather name="check" size={12} color="#FFFFFF" />
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -330,7 +497,7 @@ function Step0({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 1 OF 5"
+        eyebrow="STEP 2 OF 6"
         title="G'day, what's your name?"
         sub="The basics. Real name, real age. We're a no-bullshit kind of crew."
         colors={colors}
@@ -391,8 +558,15 @@ function Step1({
   colors,
   trade,
   setTrade,
+<<<<<<< HEAD
   jobTitle,
   setJobTitle,
+=======
+  collarType,
+  setCollarType,
+  customJobTitle,
+  setCustomJobTitle,
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   years,
   setYears,
   suburb,
@@ -400,9 +574,17 @@ function Step1({
 }: {
   colors: ReturnType<typeof useColors>;
   trade: TradeKey | null;
+<<<<<<< HEAD
   setTrade: (t: TradeKey) => void;
   jobTitle: string;
   setJobTitle: (s: string) => void;
+=======
+  setTrade: (t: TradeKey | null) => void;
+  collarType: CollarType;
+  setCollarType: (c: CollarType) => void;
+  customJobTitle: string;
+  setCustomJobTitle: (s: string) => void;
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   years: string;
   setYears: (s: string) => void;
   suburb: string;
@@ -442,6 +624,7 @@ function Step1({
                   { color: selected ? "#FFFFFF" : colors.foreground },
                 ]}
               >
+<<<<<<< HEAD
                 {t.nickname}
               </Text>
             </Pressable>
@@ -455,8 +638,53 @@ function Step1({
             size="md"
             customLabel={trade === "red_collar" && jobTitle.trim() ? jobTitle.trim() : undefined}
           />
+=======
+                <View
+                  style={[
+                    styles.modeIcon,
+                    {
+                      backgroundColor: selected ? colors.primary : colors.secondary,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={
+                      option.value === "blue"
+                        ? "tool"
+                        : option.value === "white"
+                          ? "briefcase"
+                          : "star"
+                    }
+                    size={18}
+                    color={selected ? "#FFFFFF" : colors.foreground}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modeLabel, { color: colors.foreground }]}>
+                    {option.label}
+                  </Text>
+                  <Text style={[styles.modeSub, { color: colors.mutedForeground }]}>
+                    {option.sub}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.radio,
+                    {
+                      borderColor: selected ? colors.primary : colors.border,
+                      backgroundColor: selected ? colors.primary : "transparent",
+                    },
+                  ]}
+                >
+                  {selected ? <Feather name="check" size={12} color="#FFFFFF" /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
         </View>
       )}
+<<<<<<< HEAD
       {trade === "red_collar" && (
         <Field label="Your job title">
           <Input
@@ -469,6 +697,9 @@ function Step1({
         </Field>
       )}
       <Field label="Years on the tools">
+=======
+      <Field label="Years experience">
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
         <Input
           value={years}
           onChangeText={(t) => setYears(t.replace(/[^0-9]/g, "").slice(0, 2))}
@@ -505,7 +736,7 @@ function Step2({
   return (
     <View style={{ gap: 22 }}>
       <Heading
-        eyebrow="STEP 3 OF 5"
+        eyebrow="STEP 4 OF 6"
         title="What are you here for?"
         sub="You can change this any time from the filters up top."
         colors={colors}
@@ -546,18 +777,12 @@ function Step2({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={[
-                      styles.modeLabel,
-                      { color: colors.foreground },
-                    ]}
+                    style={[styles.modeLabel, { color: colors.foreground }]}
                   >
                     {opt.label}
                   </Text>
                   <Text
-                    style={[
-                      styles.modeSub,
-                      { color: colors.mutedForeground },
-                    ]}
+                    style={[styles.modeSub, { color: colors.mutedForeground }]}
                   >
                     {opt.sub}
                   </Text>
@@ -567,7 +792,9 @@ function Step2({
                     styles.radio,
                     {
                       borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected ? colors.primary : "transparent",
+                      backgroundColor: selected
+                        ? colors.primary
+                        : "transparent",
                     },
                   ]}
                 >
@@ -627,7 +854,7 @@ function Step3({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 4 OF 5"
+        eyebrow="STEP 5 OF 6"
         title="Sell yourself"
         sub="A few honest lines beats a list of hobbies. Tell them who they're getting."
         colors={colors}
@@ -675,7 +902,7 @@ function Step4({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 5 OF 5"
+        eyebrow="STEP 6 OF 6"
         title="The little things"
         sub="Optional, but the good stuff. Skip if you're keen to crack on."
         colors={colors}
