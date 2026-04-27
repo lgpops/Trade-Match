@@ -29,12 +29,14 @@ import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
 import type { UserMedia, UserProfile } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import type { CollarType } from "@/constants/demographics";
 
 const MAX_EXTRA_MEDIA = 5;
 
 const COLLAR_LABELS: Record<CollarType, string> = {
   blue: "Blue collar",
   white: "White collar",
+  other: "Red collar",
 };
 
 export default function ProfileScreen() {
@@ -129,23 +131,15 @@ export default function ProfileScreen() {
             {user.name}, {user.age}
           </Text>
           <View style={{ marginTop: 8 }}>
-<<<<<<< HEAD
-<<<<<<< HEAD
-            <TradeBadge job={user.trade} customJobTitle={user.customJobTitle} size="lg" />
-=======
             <TradeBadge
               trade={user.trade}
               size="lg"
-              customLabel={
+              jobTitle={
                 user.trade === "red_collar" && user.jobTitle
                   ? user.jobTitle
                   : undefined
               }
             />
->>>>>>> cursor/red-collar-job-title-love-ca07
-=======
-            <TradeBadge job={user.trade} customJobTitle={user.customJobTitle} size="lg" />
->>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
           </View>
           <Text style={[styles.region, { color: colors.mutedForeground }]}>
             {user.region} · {formatCollarType(user.collarType)}
@@ -222,7 +216,7 @@ export default function ProfileScreen() {
           <DetailRow
             icon="briefcase"
             label="Job title"
-            value={user.customJobTitle ?? trade.name}
+            value={user.jobTitle ?? trade.name}
             colors={colors}
           />
           <DetailRow
@@ -385,7 +379,7 @@ function EditProfileModal({
         name: draft.name.trim(),
         region: draft.region.trim(),
         bio: draft.bio.trim(),
-        customJobTitle: draft.customJobTitle?.trim() || undefined,
+        jobTitle: draft.jobTitle?.trim() || undefined,
         rig: draft.rig.trim(),
         weekendMove: draft.weekendMove.trim(),
         brewOfChoice: draft.brewOfChoice.trim(),
