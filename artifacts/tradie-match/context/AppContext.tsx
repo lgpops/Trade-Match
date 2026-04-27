@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
@@ -12,29 +13,57 @@ import {
   type Gender,
   type SeedProfile,
 } from "@/constants/seedProfiles";
+import {
+  DEFAULT_MIN_HEIGHT_CM,
+  isHeightWithinPreference,
+  type CollarPreference,
+  type CollarType,
+  type Ethnicity,
+  type EthnicityPreference,
+} from "@/constants/demographics";
 import type { TradeKey } from "@/constants/trades";
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
 
 export type Mode = "dating" | "mates";
 export type ShowMe = "men" | "women" | "everyone";
+export type CollarType = "blue" | "white";
+
+export type DiscoveryFilters = {
+  collarPreference: CollarPreference;
+  ethnicityPreference: EthnicityPreference;
+  minHeightCm: number;
+};
+
+export type UserMedia = {
+  id: string;
+  uri: string;
+  type: "image";
+};
 
 export type UserProfile = {
   name: string;
   age: number;
   gender: Gender;
+  collarType: CollarType;
+  ethnicity: Ethnicity;
+  heightCm: number;
   trade: TradeKey;
+<<<<<<< HEAD
   jobTitle?: string;
+  profilePhotoUri?: string;
+=======
+  customJobTitle?: string;
+  profilePhotoUri?: string;
+  media: UserMedia[];
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   yearsOnTools: number;
-  suburb: string;
+  region: string;
   bio: string;
   rig: string;
   weekendMove: string;
   brewOfChoice: string;
   mode: Mode;
   showMe: ShowMe;
-  /** Empty array = show all trades */
-  filterTrades: TradeKey[];
+  filters: DiscoveryFilters;
 };
 
 export type Message = {
@@ -46,8 +75,7 @@ export type Message = {
 };
 
 export type Match = {
-  id: string;           // profile_id — used as a stable client-side key
-  dbId: number | null;  // matches.id (bigint PK) — needed for messages FK
+  id: string;
   profile: SeedProfile;
   matchedAt: number;
   lastReadAt: number;
@@ -64,7 +92,10 @@ type AppState = {
   matches: Match[];
   messages: Message[];
   saveUser: (user: UserProfile) => Promise<void>;
-  updatePrefs: (prefs: Partial<Pick<UserProfile, "mode" | "showMe" | "filterTrades">>) => Promise<void>;
+  updateUser: (updates: Partial<UserProfile>) => Promise<void>;
+  updatePrefs: (
+    prefs: Partial<Pick<UserProfile, "mode" | "showMe" | "filters">>,
+  ) => Promise<void>;
   resetUser: () => Promise<void>;
   decideOnProfile: (
     profileId: string,
@@ -75,6 +106,13 @@ type AppState = {
   unreadCount: number;
 };
 
+const STORAGE_KEYS = {
+  user: "tm.user.v1",
+  decisions: "tm.decisions.v1",
+  matches: "tm.matches.v1",
+  messages: "tm.messages.v1",
+};
+
 const AUTO_REPLIES_DATING = [
   "Oi how's it going",
   "Haha fair enough",
@@ -83,7 +121,7 @@ const AUTO_REPLIES_DATING = [
   "I reckon we'd get on, you sound alright",
   "Coffee Saturday morning?",
   "Just finished site, smashed",
-  "Tell me your worst tradie horror story",
+  "Tell me your worst work horror story",
 ];
 
 const AUTO_REPLIES_MATES = [
@@ -97,250 +135,184 @@ const AUTO_REPLIES_MATES = [
   "What ute you driving these days",
 ];
 
-const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const newId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+export const DEFAULT_DISCOVERY_FILTERS: DiscoveryFilters = {
+  collarPreference: "everyone",
+  ethnicityPreference: "everyone",
+  minHeightCm: DEFAULT_MIN_HEIGHT_CM,
+};
+
+type StoredUserProfile = Partial<UserProfile> &
+  Omit<UserProfile, "region"> & {
+    suburb?: string;
+    region?: string;
+  };
+
+function hydrateUser(user: StoredUserProfile): UserProfile {
+  return {
+    ...user,
+    collarType: user.collarType ?? "blue",
+    ethnicity: user.ethnicity ?? "other",
+    heightCm: user.heightCm ?? 175,
+    region: user.region ?? user.suburb ?? "",
+    media: (user.media ?? []).slice(0, 4),
+    filters: {
+      ...DEFAULT_DISCOVERY_FILTERS,
+      ...(user.filters ?? {}),
+    },
+  };
+}
 
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { user: authUser } = useAuth();
-  const uid = authUser?.id ?? null;
-
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [matches, setMatches] = useState<Match[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // Reset local state when auth user changes
   useEffect(() => {
-    setReady(false);
-    setUser(null);
-    setDecisions({});
-    setMatches([]);
-    setMessages([]);
-
-    if (!uid) {
-      setReady(true);
-      return;
-    }
-
     (async () => {
       try {
-        // Load profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", uid)
-          .maybeSingle();
-
-        if (profile) {
-          setUser({
-            name: profile.name,
-            age: profile.age,
-            gender: profile.gender as Gender,
-            trade: profile.trade as TradeKey,
-            jobTitle: profile.job_title ?? undefined,
-            yearsOnTools: profile.years_on_tools,
-            suburb: profile.suburb,
-            bio: profile.bio,
-            rig: profile.rig,
-            weekendMove: profile.weekend_move,
-            brewOfChoice: profile.brew_of_choice,
-            mode: profile.mode as Mode,
-            showMe: profile.show_me as ShowMe,
-            filterTrades: Array.isArray(profile.filter_trades)
-              ? (profile.filter_trades as TradeKey[])
-              : [],
-          });
-        }
-
-        // Load decisions
-        const { data: decs } = await supabase
-          .from("decisions")
-          .select("profile_id, decision")
-          .eq("user_id", uid);
-
-        if (decs) {
-          const decMap: Record<string, Decision> = {};
-          for (const d of decs) decMap[d.profile_id] = d.decision as Decision;
-          setDecisions(decMap);
-        }
-
-        // Load matches
-        const { data: mts } = await supabase
-          .from("matches")
-          .select("*")
-          .eq("user_id", uid)
-          .order("matched_at", { ascending: false });
-
-        if (mts) {
-          const hydrated = mts
-            .map((m) => {
-              const sp = SEED_PROFILES.find((p) => p.id === m.profile_id);
-              if (!sp) return null;
-              return {
-                id: m.profile_id,
-                dbId: m.id as number,
-                profile: sp,
-                matchedAt: new Date(m.matched_at).getTime(),
-                lastReadAt: m.last_read_at ? new Date(m.last_read_at).getTime() : 0,
-                mode: (m.mode ?? "dating") as Mode,
-              } satisfies Match;
+        const [u, d, m, msgs] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.user),
+          AsyncStorage.getItem(STORAGE_KEYS.decisions),
+          AsyncStorage.getItem(STORAGE_KEYS.matches),
+          AsyncStorage.getItem(STORAGE_KEYS.messages),
+        ]);
+        if (u) setUser(hydrateUser(JSON.parse(u)));
+        if (d) setDecisions(JSON.parse(d));
+        if (m) {
+          const parsed: Match[] = JSON.parse(m);
+          const hydrated = parsed
+            .map((mm) => {
+              const profile = SEED_PROFILES.find((p) => p.id === mm.profile.id);
+              return profile
+                ? { ...mm, profile, mode: mm.mode ?? "dating" }
+                : null;
             })
             .filter(Boolean) as Match[];
           setMatches(hydrated);
         }
-
-        // Load messages — join to matches to resolve profile_id (our client-side matchId)
-        const { data: msgs } = await supabase
-          .from("messages")
-          .select("id, match_id, text, from_me, created_at, matches!inner(profile_id)")
-          .eq("user_id", uid)
-          .order("created_at", { ascending: true });
-
-        if (msgs) {
-          setMessages(
-            msgs.map((m) => ({
-              id: m.id,
-              // Use profile_id as the client-side matchId so existing UI works
-              matchId: (m.matches as unknown as { profile_id: string }).profile_id,
-              text: m.text,
-              fromMe: m.from_me,
-              createdAt: new Date(m.created_at).getTime(),
-            })),
-          );
-        }
-      } catch (err) {
-        console.error("AppContext load error", err);
+        if (msgs) setMessages(JSON.parse(msgs));
+      } catch {
+        // ignore
       } finally {
         setReady(true);
       }
     })();
-  }, [uid]);
+  }, []);
 
-  const saveUser = useCallback(
-    async (next: UserProfile) => {
-      if (!uid) return;
-      setUser(next);
-      await supabase.from("profiles").upsert({
-        id: uid,
-        name: next.name,
-        age: next.age,
-        gender: next.gender,
-        trade: next.trade,
-        job_title: next.jobTitle ?? null,
-        years_on_tools: next.yearsOnTools,
-        suburb: next.suburb,
-        bio: next.bio,
-        rig: next.rig,
-        weekend_move: next.weekendMove,
-        brew_of_choice: next.brewOfChoice,
-        mode: next.mode,
-        show_me: next.showMe,
-        filter_trades: next.filterTrades ?? [],
-      });
+  const persistDecisions = useCallback(
+    async (next: Record<string, Decision>) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.decisions, JSON.stringify(next));
     },
-    [uid],
+    [],
+  );
+
+  const persistMatches = useCallback(async (next: Match[]) => {
+    const serializable = next.map((m) => ({
+      ...m,
+      profile: { ...m.profile, photo: undefined },
+    }));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.matches,
+      JSON.stringify(serializable),
+    );
+  }, []);
+
+  const persistMessages = useCallback(async (next: Message[]) => {
+    await AsyncStorage.setItem(STORAGE_KEYS.messages, JSON.stringify(next));
+  }, []);
+
+  const saveUser = useCallback(async (next: UserProfile) => {
+    setUser(next);
+    await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+  }, []);
+
+  const updateUser = useCallback<AppState["updateUser"]>(
+    async (updates) => {
+      if (!user) return;
+      const next = hydrateUser({
+        ...user,
+        ...updates,
+        filters: updates.filters
+          ? { ...user.filters, ...updates.filters }
+          : user.filters,
+      });
+      setUser(next);
+      await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+    },
+    [user],
   );
 
   const updatePrefs = useCallback<AppState["updatePrefs"]>(
     async (prefs) => {
-      if (!uid || !user) return;
-      const next = { ...user, ...prefs };
+      if (!user) return;
+      const next = hydrateUser({
+        ...user,
+        ...prefs,
+        filters: prefs.filters
+          ? { ...user.filters, ...prefs.filters }
+          : user.filters,
+      });
       setUser(next);
-      await supabase
-        .from("profiles")
-        .update({
-          mode: next.mode,
-          show_me: next.showMe,
-          filter_trades: next.filterTrades ?? [],
-        })
-        .eq("id", uid);
+      await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
     },
-    [uid, user],
+    [user],
   );
 
   const resetUser = useCallback(async () => {
-    if (!uid) return;
     setUser(null);
     setDecisions({});
     setMatches([]);
     setMessages([]);
     await Promise.all([
-      supabase.from("profiles").delete().eq("id", uid),
-      supabase.from("decisions").delete().eq("user_id", uid),
-      supabase.from("matches").delete().eq("user_id", uid),
-      supabase.from("messages").delete().eq("user_id", uid),
+      AsyncStorage.removeItem(STORAGE_KEYS.user),
+      AsyncStorage.removeItem(STORAGE_KEYS.decisions),
+      AsyncStorage.removeItem(STORAGE_KEYS.matches),
+      AsyncStorage.removeItem(STORAGE_KEYS.messages),
     ]);
-  }, [uid]);
+  }, []);
 
   const decideOnProfile = useCallback<AppState["decideOnProfile"]>(
     (profileId, decision) => {
-      if (!uid) return { matched: false, profile: null };
       const profile = SEED_PROFILES.find((p) => p.id === profileId) ?? null;
       const nextDecisions = { ...decisions, [profileId]: decision };
       setDecisions(nextDecisions);
-
-      void supabase.from("decisions").upsert({
-        user_id: uid,
-        profile_id: profileId,
-        decision,
-      });
+      void persistDecisions(nextDecisions);
 
       if (decision === "like" && profile) {
         const isMatch = Math.random() < 0.7;
         if (isMatch) {
-          const now = new Date().toISOString();
           const match: Match = {
             id: profile.id,
-            dbId: null, // will be updated after DB insert resolves
             profile,
             matchedAt: Date.now(),
             lastReadAt: 0,
             mode: user?.mode ?? "dating",
           };
-          const nextMatches = [match, ...matches.filter((m) => m.id !== profile.id)];
+          const nextMatches = [
+            match,
+            ...matches.filter((m) => m.id !== profile.id),
+          ];
           setMatches(nextMatches);
-          void (async () => {
-            const { data } = await supabase
-              .from("matches")
-              .upsert(
-                {
-                  user_id: uid,
-                  profile_id: profileId,
-                  matched_at: now,
-                  last_read_at: null,
-                  mode: user?.mode ?? "dating",
-                },
-                { onConflict: "user_id,profile_id" },
-              )
-              .select("id")
-              .single();
-            if (data?.id) {
-              setMatches((curr) =>
-                curr.map((m) =>
-                  m.id === profile.id ? { ...m, dbId: data.id as number } : m,
-                ),
-              );
-            }
-          })();
+          void persistMatches(nextMatches);
           return { matched: true, profile };
         }
       }
       return { matched: false, profile: null };
     },
-    [uid, decisions, matches, user],
+    [decisions, matches, persistDecisions, persistMatches, user],
   );
 
   const sendMessage = useCallback<AppState["sendMessage"]>(
     (matchId, text) => {
-      if (!uid) return;
       const trimmed = text.trim();
       if (!trimmed) return;
-
-      const match = matches.find((m) => m.id === matchId);
-      const dbMatchId = match?.dbId ?? null;
-
       const msg: Message = {
         id: newId(),
         matchId,
@@ -348,67 +320,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fromMe: true,
         createdAt: Date.now(),
       };
-      setMessages((curr) => [...curr, msg]);
+      const next = [...messages, msg];
+      setMessages(next);
+      void persistMessages(next);
 
-      // Only persist if we have the DB match id (FK constraint)
-      if (dbMatchId !== null) {
-        void supabase.from("messages").insert({
-          id: msg.id,
-          user_id: uid,
-          match_id: dbMatchId,
-          text: trimmed,
-          from_me: true,
-          created_at: new Date(msg.createdAt).toISOString(),
-        });
-      }
-
+      const match = matches.find((m) => m.id === matchId);
       const pool =
         match?.mode === "mates" ? AUTO_REPLIES_MATES : AUTO_REPLIES_DATING;
       const reply = pool[Math.floor(Math.random() * pool.length)]!;
       const delay = 1500 + Math.random() * 2500;
-
       setTimeout(() => {
-        const replyMsg: Message = {
-          id: newId(),
-          matchId,
-          text: reply,
-          fromMe: false,
-          createdAt: Date.now(),
-        };
-        setMessages((curr) => [...curr, replyMsg]);
-        if (dbMatchId !== null) {
-          void supabase.from("messages").insert({
-            id: replyMsg.id,
-            user_id: uid,
-            match_id: dbMatchId,
+        setMessages((curr) => {
+          const replyMsg: Message = {
+            id: newId(),
+            matchId,
             text: reply,
-            from_me: false,
-            created_at: new Date(replyMsg.createdAt).toISOString(),
-          });
-        }
+            fromMe: false,
+            createdAt: Date.now(),
+          };
+          const updated = [...curr, replyMsg];
+          void persistMessages(updated);
+          return updated;
+        });
       }, delay);
     },
-    [uid, matches],
+    [messages, matches, persistMessages],
   );
 
   const markMatchRead = useCallback<AppState["markMatchRead"]>(
     (matchId) => {
-      if (!uid) return;
-      const now = new Date().toISOString();
-      setMatches((curr) =>
-        curr.map((m) =>
-          m.id === matchId ? { ...m, lastReadAt: Date.now() } : m,
-        ),
-      );
-      const match = matches.find((m) => m.id === matchId);
-      if (match?.dbId != null) {
-        void supabase
-          .from("matches")
-          .update({ last_read_at: now })
-          .eq("id", match.dbId);
-      }
+      setMatches((curr) => {
+        const current = curr.find((m) => m.id === matchId);
+        if (!current) return curr;
+        const now = Date.now();
+        if (current.lastReadAt >= now - 1000) return curr;
+        const next = curr.map((m) =>
+          m.id === matchId ? { ...m, lastReadAt: now } : m,
+        );
+        void persistMatches(next);
+        return next;
+      });
     },
-    [uid, matches],
+    [persistMatches],
   );
 
   const profiles = useMemo(() => {
@@ -417,7 +370,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!user) return true;
       if (user.showMe === "men" && p.gender !== "male") return false;
       if (user.showMe === "women" && p.gender !== "female") return false;
-      if (user.filterTrades?.length > 0 && !user.filterTrades.includes(p.trade)) return false;
+      if (
+        user.filters.collarPreference !== "everyone" &&
+        p.collarType !== user.filters.collarPreference
+      ) {
+        return false;
+      }
+      if (
+        user.filters.ethnicityPreference !== "everyone" &&
+        p.ethnicity !== user.filters.ethnicityPreference
+      ) {
+        return false;
+      }
+      if (
+        !isHeightWithinPreference(
+          p.heightCm,
+          user.filters.minHeightCm,
+        )
+      ) {
+        return false;
+      }
       return true;
     });
   }, [decisions, user]);
@@ -441,6 +413,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     matches,
     messages,
     saveUser,
+    updateUser,
     updatePrefs,
     resetUser,
     decideOnProfile,

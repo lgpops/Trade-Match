@@ -43,8 +43,8 @@ export default function ChatScreen() {
   );
 
   useEffect(() => {
-    if (match) markMatchRead(match.id);
-  }, [match, markMatchRead]);
+    if (id) markMatchRead(id);
+  }, [id, markMatchRead]);
 
   if (!match) {
     return (
@@ -101,10 +101,14 @@ export default function ChatScreen() {
             style={[styles.headerSub, { color: colors.mutedForeground }]}
             numberOfLines={1}
           >
-            {match.profile.suburb} · {match.profile.distanceKm} km away
+            {match.profile.region} · {match.profile.distanceKm} km away
           </Text>
         </View>
-        <TradeBadge trade={match.profile.trade} size="sm" />
+        <TradeBadge
+          job={match.profile.trade}
+          customJobTitle={match.profile.customJobTitle}
+          size="sm"
+        />
       </View>
 
       <FlatList

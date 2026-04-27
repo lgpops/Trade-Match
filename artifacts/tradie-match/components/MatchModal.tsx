@@ -32,7 +32,7 @@ export function MatchModal({ visible, profile, mode = "dating", onClose }: Props
     : `You and ${profile.name} are keen.`;
   const body = isMates
     ? "Send the first message. Beers, jobs, smoko — kick it off."
-    : "Send the first message. No one likes a tradie that doesn't turn up.";
+    : "Send the first message. No one likes a match that doesn't turn up.";
 
   const goToChat = () => {
     onClose();
@@ -48,7 +48,7 @@ export function MatchModal({ visible, profile, mode = "dating", onClose }: Props
     >
       <View style={styles.backdrop}>
         <LinearGradient
-          colors={["rgba(232,93,26,0.95)", "rgba(26,20,16,0.98)"]}
+          colors={["rgba(215,38,56,0.95)", "rgba(26,20,16,0.98)"]}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.content}>

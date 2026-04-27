@@ -13,8 +13,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TradeBadge } from "@/components/TradeBadge";
+import {
+  formatCollarType,
+  formatEthnicity,
+  formatHeight,
+} from "@/constants/demographics";
 import type { SeedProfile } from "@/constants/seedProfiles";
-import { getTrade } from "@/constants/trades";
+import { getTrade, getTradeLabel } from "@/constants/trades";
 import { useColors } from "@/hooks/useColors";
 
 type Props = {
@@ -64,7 +69,11 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
               </Pressable>
               <View style={styles.heroInfo}>
                 <View style={styles.row}>
-                  <TradeBadge trade={profile.trade} size="lg" />
+                  <TradeBadge
+                    job={profile.trade}
+                    customJobTitle={profile.customJobTitle}
+                    size="lg"
+                  />
                   <View style={styles.distance}>
                     <Feather name="map-pin" size={13} color="#FFFFFF" />
                     <Text style={styles.distanceText}>{profile.distanceKm} km</Text>
@@ -74,7 +83,7 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
                   {profile.name}, {profile.age}
                 </Text>
                 <Text style={styles.heroSub}>
-                  {profile.yearsOnTools} yrs on the tools · {profile.suburb}
+                  {formatCollarType(profile.collarType)} · {profile.region}
                 </Text>
               </View>
               <View style={[styles.tradeStripe, { backgroundColor: trade.color }]} />
@@ -86,8 +95,40 @@ export function ProfileSheet({ visible, profile, onClose, onPass, onLike }: Prop
               </Text>
 
               <Detail
+                icon={profile.collarType === "blue" ? "tool" : "briefcase"}
+                label="Job title"
+                value={getTradeLabel(profile.trade, profile.customJobTitle)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
+                icon={profile.collarType === "blue" ? "tool" : "briefcase"}
+                label="Collar"
+                value={formatCollarType(profile.collarType)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
+                icon="globe"
+                label="Ethnicity"
+                value={formatEthnicity(profile.ethnicity)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
+                icon="bar-chart-2"
+                label="Height"
+                value={formatHeight(profile.heightCm)}
+                color={colors.foreground}
+                muted={colors.mutedForeground}
+                accent={colors.accent}
+              />
+              <Detail
                 icon="truck"
-                label="The rig"
+                label={profile.collarType === "blue" ? "The rig" : "Work setup"}
                 value={profile.rig}
                 color={colors.foreground}
                 muted={colors.mutedForeground}
@@ -311,7 +352,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   likeBtn: {
-    shadowColor: "#E85D1A",
+    shadowColor: "#D72638",
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },

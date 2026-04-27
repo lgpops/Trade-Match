@@ -7,11 +7,17 @@ import { getTrade, type TradeKey } from "@/constants/trades";
 type Props = {
   trade: TradeKey;
   size?: "sm" | "md" | "lg";
-  customLabel?: string;
+  jobTitle?: string;
 };
 
-export function TradeBadge({ trade, size = "md", customLabel }: Props) {
+<<<<<<< HEAD
+export function TradeBadge({ trade, size = "md", jobTitle }: Props) {
   const t = getTrade(trade);
+=======
+export function TradeBadge({ job, trade, customJobTitle, label: labelOverride, size = "md" }: Props) {
+  const jobKey = job ?? trade ?? "other";
+  const t = getTrade(jobKey);
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   const padV = size === "sm" ? 4 : size === "lg" ? 8 : 6;
   const padH = size === "sm" ? 8 : size === "lg" ? 14 : 10;
   const fontSize = size === "sm" ? 11 : size === "lg" ? 14 : 12;
@@ -28,9 +34,23 @@ export function TradeBadge({ trade, size = "md", customLabel }: Props) {
         },
       ]}
     >
-      <Feather name="tool" size={iconSize} color="#FFFFFF" />
+      <Feather
+        name={
+          t.collarType === "blue"
+            ? "tool"
+            : t.collarType === "white"
+              ? "briefcase"
+              : "star"
+        }
+        size={iconSize}
+        color="#FFFFFF"
+      />
       <Text style={[styles.text, { fontSize }]} numberOfLines={1}>
-        {customLabel ?? t.nickname}
+<<<<<<< HEAD
+        {jobTitle ?? t.nickname}
+=======
+        {label}
+>>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
       </Text>
     </View>
   );

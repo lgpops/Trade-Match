@@ -10,12 +10,23 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { HeightSlider } from "@/components/HeightSlider";
 import {
+  COLLAR_FILTER_OPTIONS,
+  DEFAULT_MIN_HEIGHT_CM,
+  ETHNICITY_FILTER_OPTIONS,
+  HEIGHT_SLIDER_MAX_CM,
+  HEIGHT_SLIDER_MIN_CM,
+  formatMinHeightPreference,
+  type CollarPreference,
+  type EthnicityPreference,
+} from "@/constants/demographics";
+import {
+  DEFAULT_DISCOVERY_FILTERS,
   useApp,
   type Mode,
   type ShowMe,
 } from "@/context/AppContext";
-import { TRADES, type TradeKey } from "@/constants/trades";
 import { useColors } from "@/hooks/useColors";
 
 type Props = {
@@ -38,7 +49,7 @@ const MODE_OPTIONS: {
   {
     value: "mates",
     label: "Mateship",
-    sub: "After mates on the tools",
+    sub: "After mates across work and life",
     icon: "users",
   },
 ];
@@ -49,6 +60,12 @@ const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
   { value: "everyone", label: "Everyone" },
 ];
 
+function defaultShowMeForGender(gender: "male" | "female" | undefined): ShowMe {
+  if (gender === "female") return "men";
+  if (gender === "male") return "women";
+  return "everyone";
+}
+
 export function FiltersSheet({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -56,33 +73,47 @@ export function FiltersSheet({ visible, onClose }: Props) {
 
   const [mode, setMode] = useState<Mode>(user?.mode ?? "dating");
   const [showMe, setShowMe] = useState<ShowMe>(user?.showMe ?? "everyone");
-  const [filterTrades, setFilterTrades] = useState<TradeKey[]>(
-    user?.filterTrades ?? [],
-  );
+  const [collarPreference, setCollarPreference] =
+    useState<CollarPreference>("everyone");
+  const [ethnicityPreference, setEthnicityPreference] =
+    useState<EthnicityPreference>("everyone");
+  const [minHeightCm, setMinHeightCm] = useState(DEFAULT_MIN_HEIGHT_CM);
 
   React.useEffect(() => {
     if (visible && user) {
       setMode(user.mode);
       setShowMe(user.showMe);
-      setFilterTrades(user.filterTrades ?? []);
+      setCollarPreference(
+        user.filters?.collarPreference ??
+          DEFAULT_DISCOVERY_FILTERS.collarPreference,
+      );
+      setEthnicityPreference(
+        user.filters?.ethnicityPreference ??
+          DEFAULT_DISCOVERY_FILTERS.ethnicityPreference,
+      );
+      setMinHeightCm(
+        user.filters?.minHeightCm ?? DEFAULT_DISCOVERY_FILTERS.minHeightCm,
+      );
     }
   }, [visible, user]);
 
-  const toggleTrade = (key: TradeKey) => {
-    setFilterTrades((curr) =>
-      curr.includes(key) ? curr.filter((k) => k !== key) : [...curr, key],
-    );
-  };
-
   const onSave = async () => {
-    await updatePrefs({ mode, showMe, filterTrades });
+    await updatePrefs({
+      mode,
+      showMe,
+      filters: {
+        collarPreference,
+        ethnicityPreference,
+        minHeightCm,
+      },
+    });
     onClose();
   };
 
-  const activeFiltersCount =
-    (mode !== (user?.mode ?? "dating") ? 1 : 0) +
-    (showMe !== (user?.showMe ?? "everyone") ? 1 : 0) +
-    filterTrades.length;
+  const selectMode = (nextMode: Mode) => {
+    setMode(nextMode);
+    setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(user?.gender));
+  };
 
   return (
     <Modal
@@ -115,9 +146,8 @@ export function FiltersSheet({ visible, onClose }: Props) {
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 22, paddingBottom: 8 }}
+            contentContainerStyle={styles.scrollContent}
           >
-            {/* I'm here for */}
             <View style={styles.section}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 I&apos;M HERE FOR
@@ -128,7 +158,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
                   return (
                     <Pressable
                       key={opt.value}
-                      onPress={() => setMode(opt.value)}
+                      onPress={() => selectMode(opt.value)}
                       style={({ pressed }) => [
                         styles.modeCard,
                         {
@@ -156,12 +186,18 @@ export function FiltersSheet({ visible, onClose }: Props) {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text
-                          style={[styles.modeLabel, { color: colors.foreground }]}
+                          style={[
+                            styles.modeLabel,
+                            { color: colors.foreground },
+                          ]}
                         >
                           {opt.label}
                         </Text>
                         <Text
-                          style={[styles.modeSub, { color: colors.mutedForeground }]}
+                          style={[
+                            styles.modeSub,
+                            { color: colors.mutedForeground },
+                          ]}
                         >
                           {opt.sub}
                         </Text>
@@ -185,8 +221,7 @@ export function FiltersSheet({ visible, onClose }: Props) {
               </View>
             </View>
 
-            {/* Show me */}
-            <View style={styles.section}>
+            <View style={styles.filterCard}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 SHOW ME
               </Text>
@@ -194,82 +229,64 @@ export function FiltersSheet({ visible, onClose }: Props) {
                 {SHOW_OPTIONS.map((opt) => {
                   const selected = showMe === opt.value;
                   return (
-                    <Pressable
+                    <Segment
                       key={opt.value}
+                      label={opt.label}
+                      selected={selected}
                       onPress={() => setShowMe(opt.value)}
-                      style={({ pressed }) => [
-                        styles.segment,
-                        {
-                          backgroundColor: selected ? colors.primary : colors.card,
-                          borderColor: selected ? colors.primary : colors.border,
-                        },
-                        pressed && { opacity: 0.85 },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentText,
-                          { color: selected ? "#FFFFFF" : colors.foreground },
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                    </Pressable>
+                    />
                   );
                 })}
               </View>
             </View>
 
-            {/* Collar / Trade multi-select */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-                  COLLAR TYPE
-                </Text>
-                {filterTrades.length > 0 && (
-                  <Pressable onPress={() => setFilterTrades([])} hitSlop={8}>
-                    <Text style={[styles.clearText, { color: colors.primary }]}>
-                      Clear ({filterTrades.length})
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-              <Text style={[styles.tradeHint, { color: colors.mutedForeground }]}>
-                {filterTrades.length === 0
-                  ? "Showing all collar types"
-                  : `Showing ${filterTrades.length} selected`}
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                COLLAR TYPE
               </Text>
-              <View style={styles.tradeGrid}>
-                {TRADES.map((t) => {
-                  const selected = filterTrades.includes(t.key);
-                  return (
-                    <Pressable
-                      key={t.key}
-                      onPress={() => toggleTrade(t.key)}
-                      style={({ pressed }) => [
-                        styles.tradeChip,
-                        {
-                          backgroundColor: selected ? t.color : colors.card,
-                          borderColor: selected ? t.color : colors.border,
-                        },
-                        pressed && { opacity: 0.85 },
-                      ]}
-                    >
-                      {selected && (
-                        <Feather name="check" size={11} color="#FFFFFF" />
-                      )}
-                      <Text
-                        style={[
-                          styles.tradeChipText,
-                          { color: selected ? "#FFFFFF" : colors.foreground },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {t.nickname}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+              <View style={styles.segments}>
+                {COLLAR_FILTER_OPTIONS.map((opt) => (
+                  <Segment
+                    key={opt.value}
+                    label={opt.label}
+                    selected={collarPreference === opt.value}
+                    onPress={() => setCollarPreference(opt.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                ETHNICITY
+              </Text>
+              <View style={styles.wrapSegments}>
+                {ETHNICITY_FILTER_OPTIONS.map((opt) => (
+                  <Chip
+                    key={opt.value}
+                    label={opt.label}
+                    selected={ethnicityPreference === opt.value}
+                    onPress={() => setEthnicityPreference(opt.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                HEIGHT
+              </Text>
+              <Text style={[styles.filterSummary, { color: colors.foreground }]}>
+                {formatMinHeightPreference(minHeightCm)}
+              </Text>
+              <View style={[styles.heightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <HeightSlider
+                  label="Minimum height"
+                  value={minHeightCm}
+                  min={HEIGHT_SLIDER_MIN_CM}
+                  max={HEIGHT_SLIDER_MAX_CM}
+                  onChange={setMinHeightCm}
+                />
               </View>
             </View>
           </ScrollView>
@@ -282,13 +299,81 @@ export function FiltersSheet({ visible, onClose }: Props) {
               pressed && { opacity: 0.85 },
             ]}
           >
-            <Text style={styles.saveText}>
-              Apply{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
-            </Text>
+            <Text style={styles.saveText}>Apply</Text>
           </Pressable>
         </View>
       </View>
     </Modal>
+  );
+}
+
+function Segment({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.segment,
+        {
+          backgroundColor: selected ? colors.primary : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <Text
+        style={[
+          styles.segmentText,
+          {
+            color: selected ? "#FFFFFF" : colors.foreground,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        {
+          backgroundColor: selected ? colors.primary : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          { color: selected ? "#FFFFFF" : colors.foreground },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -300,7 +385,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingTop: 8,
-    maxHeight: "85%",
+    gap: 22,
+    maxHeight: "92%",
   },
   handle: {
     width: 36,
@@ -314,32 +400,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
   },
   title: {
     fontSize: 22,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.4,
   },
+  scrollContent: {
+    gap: 22,
+    paddingBottom: 2,
+  },
   section: { gap: 12 },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  filterCard: {
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(215,38,56,0.18)",
+    backgroundColor: "rgba(255,255,255,0.58)",
+    padding: 14,
   },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 2,
-  },
-  clearText: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  tradeHint: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: -4,
   },
   modeCard: {
     flexDirection: "row",
@@ -377,6 +460,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  wrapSegments: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   segment: {
     flex: 1,
     paddingVertical: 12,
@@ -388,29 +476,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
   },
-  tradeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  tradeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+  chip: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1.5,
   },
-  tradeChipText: {
+  chipText: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
+  },
+  filterSummary: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  heightCard: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+    gap: 14,
   },
   saveBtn: {
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
-    marginTop: 16,
   },
   saveText: {
     color: "#FFFFFF",
