@@ -46,9 +46,8 @@ export type UserProfile = {
   ethnicity: Ethnicity;
   heightCm: number;
   trade: TradeKey;
-  customJobTitle?: string;
+  jobTitle?: string;
   profilePhotoUri?: string;
-  media: UserMedia[];
   yearsOnTools: number;
   region: string;
   bio: string;

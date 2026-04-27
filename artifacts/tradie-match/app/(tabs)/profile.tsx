@@ -102,7 +102,19 @@ export default function ProfileScreen() {
             {user.name}, {user.age}
           </Text>
           <View style={{ marginTop: 8 }}>
+<<<<<<< HEAD
             <TradeBadge job={user.trade} customJobTitle={user.customJobTitle} size="lg" />
+=======
+            <TradeBadge
+              trade={user.trade}
+              size="lg"
+              customLabel={
+                user.trade === "red_collar" && user.jobTitle
+                  ? user.jobTitle
+                  : undefined
+              }
+            />
+>>>>>>> cursor/red-collar-job-title-love-ca07
           </View>
           <Text style={[styles.region, { color: colors.mutedForeground }]}>
             {user.region} · {formatCollarType(user.collarType)}

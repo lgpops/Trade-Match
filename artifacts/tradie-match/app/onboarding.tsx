@@ -1,9 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -16,26 +13,10 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HeightSlider } from "@/components/HeightSlider";
 import { TradeBadge } from "@/components/TradeBadge";
-import {
-  COLLAR_OPTIONS,
-  ETHNICITY_OPTIONS,
-  HEIGHT_SLIDER_MAX_CM,
-  HEIGHT_SLIDER_MIN_CM,
-  cmToFeetInches,
-  type CollarType,
-  type Ethnicity,
-} from "@/constants/demographics";
 import type { Gender } from "@/constants/seedProfiles";
-import { getTradesForCollar, isTradeForCollar, type TradeKey } from "@/constants/trades";
-import {
-  DEFAULT_DISCOVERY_FILTERS,
-  type UserMedia,
-  useApp,
-  type Mode,
-  type ShowMe,
-} from "@/context/AppContext";
+import { TRADES, type TradeKey } from "@/constants/trades";
+import { useApp, type Mode, type ShowMe } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -55,52 +36,22 @@ const MODE_OPTIONS: {
   {
     value: "dating",
     label: "Dating",
-    sub: "Looking for someone special",
+    sub: "Just looking for love",
     icon: "heart",
   },
   {
     value: "mates",
     label: "Mateship",
-    sub: "After mates across blue or white collar work",
+    sub: "After mates on the tools",
     icon: "users",
   },
 ];
-
-const REGION_EXAMPLES = [
-  "Sydney, Australia",
-  "New York, United States",
-  "London, United Kingdom",
-  "Toronto, Canada",
-];
-
-const MAX_EXTRA_MEDIA = 5;
-
-const LEGACY_REGION_PLACEHOLDERS = new Set(["Inner West"]);
 
 const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
   { value: "men", label: "Men" },
   { value: "women", label: "Women" },
   { value: "everyone", label: "Everyone" },
 ];
-
-function defaultShowMeForGender(gender: Gender | null): ShowMe {
-  if (gender === "female") return "men";
-  if (gender === "male") return "women";
-  return "everyone";
-}
-
-function formatRegionFromPlace(place: Location.LocationGeocodedAddress): string {
-  const locality =
-    place.city ||
-    place.region ||
-    place.subregion ||
-    place.district ||
-    place.name;
-  return [locality, place.country]
-    .filter(Boolean)
-    .filter((part, index, parts) => parts.indexOf(part) === index)
-    .join(", ");
-}
 
 export default function Onboarding() {
   const colors = useColors();
@@ -113,14 +64,9 @@ export default function Onboarding() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
-  const [profilePhotoUri, setProfilePhotoUri] = useState("");
-  const [media, setMedia] = useState<UserMedia[]>([]);
-  const [ethnicity, setEthnicity] = useState<Ethnicity | null>(null);
-  const [heightCm, setHeightCm] = useState("175");
-  const [collarType, setCollarType] = useState<CollarType>("blue");
-  const [region, setRegion] = useState("");
+  const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState<TradeKey | null>(null);
-  const [customJobTitle, setCustomJobTitle] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [years, setYears] = useState("");
   const [mode, setMode] = useState<Mode>("dating");
   const [showMe, setShowMe] = useState<ShowMe>("everyone");
@@ -129,92 +75,43 @@ export default function Onboarding() {
   const [weekendMove, setWeekendMove] = useState("");
   const [brewOfChoice, setBrewOfChoice] = useState("");
 
-  useEffect(() => {
-    if (LEGACY_REGION_PLACEHOLDERS.has(region.trim())) {
-      setRegion("");
-    }
-    if (step === 2) {
-      setShowMe(mode === "mates" ? "everyone" : defaultShowMeForGender(gender));
-    }
-  }, [gender, mode, region, step]);
-
-  const setGenderAndDefaultPreference = (nextGender: Gender) => {
-    setGender(nextGender);
-    if (mode === "dating") {
-      setShowMe(defaultShowMeForGender(nextGender));
-    }
-  };
-
-  const setModeAndDefaultPreference = (nextMode: Mode) => {
-    setMode(nextMode);
-    setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(gender));
-  };
-
   const canContinue = useMemo(() => {
-    if (step === 0) {
-      return (
-        name.trim().length > 0 &&
-        Number(age) >= 18 &&
-        !!gender &&
-        profilePhotoUri.trim().length > 0 &&
-        !!ethnicity &&
-        Number(heightCm) >= 140
-      );
-    }
+    if (step === 0) return name.trim().length > 0 && Number(age) >= 18 && !!gender;
     if (step === 1) {
       return (
         !!trade &&
+        (trade !== "red_collar" || jobTitle.trim().length > 0) &&
         Number(years) >= 0 &&
-        region.trim().length > 0 &&
-        (trade !== "other" || customJobTitle.trim().length > 0)
+        suburb.trim().length > 0
       );
     }
     if (step === 2) return !!mode && !!showMe;
     if (step === 3) return bio.trim().length >= 10;
     return true;
-  }, [
-    step,
-    name,
-    age,
-    gender,
-    profilePhotoUri,
-    ethnicity,
-    heightCm,
-    trade,
-    years,
-    region,
-    customJobTitle,
-    mode,
-    showMe,
-    bio,
-  ]);
+  }, [step, name, age, gender, trade, jobTitle, years, suburb, mode, showMe, bio]);
 
   const onNext = async () => {
     if (step < 4) {
       setStep((s) => (s + 1) as Step);
       return;
     }
-    if (!trade || !gender || !ethnicity) return;
+    if (!trade || !gender) return;
     await saveUser({
       name: name.trim(),
       age: Number(age),
       gender,
-      profilePhotoUri,
-      collarType,
-      ethnicity,
-      heightCm: Number(heightCm),
       trade,
-      customJobTitle: trade === "other" ? customJobTitle.trim() : undefined,
+      ...(trade === "red_collar" && jobTitle.trim()
+        ? { jobTitle: jobTitle.trim() }
+        : {}),
       yearsOnTools: Number(years || 0),
-      region: region.trim(),
+      suburb: suburb.trim(),
       bio: bio.trim(),
-      rig: rig.trim(),
-      weekendMove: weekendMove.trim(),
-      brewOfChoice: brewOfChoice.trim(),
-      media,
+      rig: rig.trim() || "Just the work van",
+      weekendMove: weekendMove.trim() || "Down at the local",
+      brewOfChoice: brewOfChoice.trim() || "Whatever's cold",
       mode,
       showMe,
-      filters: DEFAULT_DISCOVERY_FILTERS,
     });
   };
 
@@ -272,46 +169,32 @@ export default function Onboarding() {
               age={age}
               setAge={setAge}
               gender={gender}
-              setGender={setGenderAndDefaultPreference}
-              profilePhotoUri={profilePhotoUri}
-              setProfilePhotoUri={setProfilePhotoUri}
-              media={media}
-              setMedia={setMedia}
-              ethnicity={ethnicity}
-              setEthnicity={setEthnicity}
-              heightCm={heightCm}
-              setHeightCm={setHeightCm}
+              setGender={setGender}
             />
           )}
           {step === 1 && (
             <Step1
               colors={colors}
               trade={trade}
-              setTrade={setTrade}
-              collarType={collarType}
-              setCollarType={(nextCollar) => {
-                setCollarType(nextCollar);
-                if (trade && !isTradeForCollar(trade, nextCollar)) {
-                  setTrade(null);
-                  setCustomJobTitle("");
-                }
+              setTrade={(t) => {
+                setTrade(t);
+                if (t !== "red_collar") setJobTitle("");
               }}
-              customJobTitle={customJobTitle}
-              setCustomJobTitle={setCustomJobTitle}
+              jobTitle={jobTitle}
+              setJobTitle={setJobTitle}
               years={years}
               setYears={setYears}
-              region={region}
-              setRegion={setRegion}
+              suburb={suburb}
+              setSuburb={setSuburb}
             />
           )}
           {step === 2 && (
             <Step2
               colors={colors}
               mode={mode}
-              setMode={setModeAndDefaultPreference}
+              setMode={setMode}
               showMe={showMe}
               setShowMe={setShowMe}
-              gender={gender}
             />
           )}
           {step === 3 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
@@ -356,7 +239,7 @@ export default function Onboarding() {
               { color: canContinue ? "#FFFFFF" : colors.mutedForeground },
             ]}
           >
-            {step === 4 ? "Start matching" : "Continue"}
+            {step === 4 ? "Get on the tools" : "Continue"}
           </Text>
           <Feather
             name="arrow-right"
@@ -435,14 +318,6 @@ function Step0({
   setAge,
   gender,
   setGender,
-  profilePhotoUri,
-  setProfilePhotoUri,
-  media,
-  setMedia,
-  ethnicity,
-  setEthnicity,
-  heightCm,
-  setHeightCm,
 }: {
   colors: ReturnType<typeof useColors>;
   name: string;
@@ -451,55 +326,7 @@ function Step0({
   setAge: (s: string) => void;
   gender: Gender | null;
   setGender: (g: Gender) => void;
-  profilePhotoUri: string;
-  setProfilePhotoUri: (uri: string) => void;
-  media: UserMedia[];
-  setMedia: (media: UserMedia[]) => void;
-  ethnicity: Ethnicity | null;
-  setEthnicity: (e: Ethnicity) => void;
-  heightCm: string;
-  setHeightCm: (s: string) => void;
 }) {
-  const parsedHeight = Number(heightCm);
-  const { feet, inches } = cmToFeetInches(Number.isFinite(parsedHeight) ? parsedHeight : 0);
-  const pickProfilePhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      setProfilePhotoUri(result.assets[0].uri);
-    }
-  };
-
-  const addMedia = async () => {
-    if (media.length >= MAX_EXTRA_MEDIA) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-      allowsMultipleSelection: true,
-      selectionLimit: MAX_EXTRA_MEDIA - media.length,
-    });
-    if (result.canceled) return;
-    const nextItems: UserMedia[] = result.assets
-      .slice(0, MAX_EXTRA_MEDIA - media.length)
-      .filter((asset) => !!asset.uri)
-      .map((asset) => ({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        uri: asset.uri,
-        type: "image",
-      }));
-    if (nextItems.length > 0) {
-      setMedia([...media, ...nextItems]);
-    }
-  };
-
-  const removeMedia = (id: string) => {
-    setMedia(media.filter((item) => item.id !== id));
-  };
-
   return (
     <View style={{ gap: 18 }}>
       <Heading
@@ -556,130 +383,6 @@ function Step0({
           })}
         </View>
       </Field>
-      <Field label="Profile photo">
-        <View style={styles.photoPicker}>
-          <View
-            style={[
-              styles.photoPreview,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            {profilePhotoUri ? (
-              <Image
-                source={{ uri: profilePhotoUri }}
-                style={styles.photoPreviewImage}
-                contentFit="cover"
-              />
-            ) : (
-              <Feather name="camera" size={28} color={colors.mutedForeground} />
-            )}
-          </View>
-          <View style={{ flex: 1, gap: 8 }}>
-            <Pressable
-              onPress={pickProfilePhoto}
-              style={({ pressed }) => [
-                styles.photoButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <Feather name="image" size={16} color={colors.primary} />
-              <Text style={[styles.photoButtonText, { color: colors.primary }]}>
-                {profilePhotoUri ? "Change photo" : "Choose photo"}
-              </Text>
-            </Pressable>
-            <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
-              Required. This is your main profile photo.
-            </Text>
-          </View>
-        </View>
-      </Field>
-      <Field label="Extra photos">
-        <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
-          Add up to 5 more photos now, or add them later from your profile.
-        </Text>
-        <View style={styles.onboardingMediaGrid}>
-          {media.map((item) => (
-            <View key={item.id} style={styles.onboardingMediaTile}>
-              <Image
-                source={{ uri: item.uri }}
-                style={styles.onboardingMediaImage}
-                contentFit="cover"
-              />
-              <Pressable
-                onPress={() => setMedia(media.filter((m) => m.id !== item.id))}
-                style={styles.onboardingMediaRemove}
-              >
-                <Feather name="x" size={14} color="#FFFFFF" />
-              </Pressable>
-            </View>
-          ))}
-          {media.length < MAX_EXTRA_MEDIA ? (
-            <Pressable
-              onPress={addMedia}
-              style={({ pressed }) => [
-                styles.onboardingAddMedia,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                pressed && { opacity: 0.75 },
-              ]}
-            >
-              <Feather name="plus" size={22} color={colors.primary} />
-              <Text style={[styles.onboardingAddMediaText, { color: colors.primary }]}>
-                Add photos
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </Field>
-      <Field label="Ethnicity">
-        <View style={styles.wrapSegments}>
-          {ETHNICITY_OPTIONS.map((option) => {
-            const selected = ethnicity === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => setEthnicity(option.value)}
-                style={({ pressed }) => [
-                  styles.optionChip,
-                  {
-                    backgroundColor: selected ? colors.primary : colors.card,
-                    borderColor: selected ? colors.primary : colors.border,
-                  },
-                  pressed && { opacity: 0.85 },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.optionChipText,
-                    { color: selected ? "#FFFFFF" : colors.foreground },
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Field>
-      <Field label="Height">
-        <View
-          style={[
-            styles.heightSliderCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <HeightSlider
-            label="Your height"
-            value={parsedHeight}
-            min={HEIGHT_SLIDER_MIN_CM}
-            max={HEIGHT_SLIDER_MAX_CM}
-            onChange={(value) => setHeightCm(String(value))}
-          />
-        </View>
-        <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
-          Equivalent to {feet} ft {inches} in.
-        </Text>
-      </Field>
     </View>
   );
 }
@@ -688,204 +391,84 @@ function Step1({
   colors,
   trade,
   setTrade,
-  collarType,
-  setCollarType,
-  customJobTitle,
-  setCustomJobTitle,
+  jobTitle,
+  setJobTitle,
   years,
   setYears,
-  region,
-  setRegion,
+  suburb,
+  setSuburb,
 }: {
   colors: ReturnType<typeof useColors>;
   trade: TradeKey | null;
-  setTrade: (t: TradeKey | null) => void;
-  collarType: CollarType;
-  setCollarType: (c: CollarType) => void;
-  customJobTitle: string;
-  setCustomJobTitle: (s: string) => void;
+  setTrade: (t: TradeKey) => void;
+  jobTitle: string;
+  setJobTitle: (s: string) => void;
   years: string;
   setYears: (s: string) => void;
-  region: string;
-  setRegion: (s: string) => void;
+  suburb: string;
+  setSuburb: (s: string) => void;
 }) {
-  const tradeOptions = getTradesForCollar(collarType);
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState("");
-
-  const useCurrentLocation = async () => {
-    try {
-      setLocationError("");
-      setLocating(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocationError("Location permission was not granted.");
-        return;
-      }
-      const position = await Location.getCurrentPositionAsync({});
-      const [place] = await Location.reverseGeocodeAsync(position.coords);
-      const resolvedRegion = [
-        place?.district,
-        place?.city,
-        place?.region,
-        place?.country,
-      ]
-        .filter(Boolean)
-        .filter((part, index, arr) => arr.indexOf(part) === index)
-        .slice(0, 2)
-        .join(", ");
-      if (resolvedRegion) {
-        setRegion(resolvedRegion);
-      } else {
-        setLocationError("Could not identify your region from this location.");
-      }
-    } catch {
-      setLocationError("Could not fetch your current location.");
-    } finally {
-      setLocating(false);
-    }
-  };
-
   return (
     <View style={{ gap: 18 }}>
       <Heading
         eyebrow="STEP 2 OF 5"
-        title="What's your collar?"
-        sub="Pick blue, white, or Red Collar if you're just looking for love."
+        title="What's your trade?"
+        sub="Pick the one that pays the bills."
         colors={colors}
       />
-      <Field label="Collar type">
-        <View style={{ gap: 10 }}>
-          {COLLAR_OPTIONS.map((option) => {
-            const selected = collarType === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => {
-                  setCollarType(option.value);
-                  if (option.value === "other") {
-                    setTrade("other");
-                  } else if (trade && !isTradeForCollar(trade, option.value)) {
-                    setTrade(null);
-                    setCustomJobTitle("");
-                  }
-                }}
-                style={({ pressed }) => [
-                  styles.modeCard,
-                  {
-                    backgroundColor: selected ? colors.accent : colors.card,
-                    borderColor: selected ? colors.primary : colors.border,
-                  },
-                  pressed && { opacity: 0.85 },
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingRight: 12 }}
+      >
+        {TRADES.map((t) => {
+          const selected = t.key === trade;
+          return (
+            <Pressable
+              key={t.key}
+              onPress={() => setTrade(t.key)}
+              style={({ pressed }) => [
+                styles.tradeChip,
+                {
+                  backgroundColor: selected ? t.color : colors.card,
+                  borderColor: selected ? t.color : colors.border,
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tradeChipText,
+                  { color: selected ? "#FFFFFF" : colors.foreground },
                 ]}
               >
-                <View
-                  style={[
-                    styles.modeIcon,
-                    {
-                      backgroundColor: selected ? colors.primary : colors.secondary,
-                    },
-                  ]}
-                >
-                  <Feather
-                    name={
-                      option.value === "blue"
-                        ? "tool"
-                        : option.value === "white"
-                          ? "briefcase"
-                          : "star"
-                    }
-                    size={18}
-                    color={selected ? "#FFFFFF" : colors.foreground}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.modeLabel, { color: colors.foreground }]}>
-                    {option.label}
-                  </Text>
-                  <Text style={[styles.modeSub, { color: colors.mutedForeground }]}>
-                    {option.sub}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.radio,
-                    {
-                      borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected ? colors.primary : "transparent",
-                    },
-                  ]}
-                >
-                  {selected ? <Feather name="check" size={12} color="#FFFFFF" /> : null}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Field>
-      {collarType !== "other" ? (
-        <Field label="Work / industry">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingRight: 12 }}
-          >
-            {tradeOptions.map((t) => {
-              const selected = t.key === trade;
-              return (
-                <Pressable
-                  key={t.key}
-                  onPress={() => setTrade(t.key)}
-                  style={({ pressed }) => [
-                    styles.tradeChip,
-                    {
-                      backgroundColor: selected ? t.color : colors.card,
-                      borderColor: selected ? t.color : colors.border,
-                    },
-                    pressed && { opacity: 0.85 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tradeChipText,
-                      { color: selected ? "#FFFFFF" : colors.foreground },
-                    ]}
-                  >
-                    {t.nickname}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </Field>
-      ) : null}
-      {trade && collarType !== "other" ? (
+                {t.nickname}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      {trade && (
         <View style={{ alignItems: "flex-start", marginTop: -4 }}>
           <TradeBadge
-            job={trade}
-            customJobTitle={trade === "other" ? customJobTitle || "Other" : undefined}
+            trade={trade}
             size="md"
+            customLabel={trade === "red_collar" && jobTitle.trim() ? jobTitle.trim() : undefined}
           />
         </View>
-      ) : null}
-      {(trade === "other" || collarType === "other") && (
+      )}
+      {trade === "red_collar" && (
         <Field label="Your job title">
           <Input
-            value={customJobTitle}
-            onChangeText={setCustomJobTitle}
-            placeholder={
-              collarType === "blue"
-                ? "Scaffolder"
-                : collarType === "white"
-                  ? "Product manager"
-                  : "Artist, CEO, parkour athlete"
-            }
+            value={jobTitle}
+            onChangeText={setJobTitle}
+            placeholder="e.g. Nurse, Teacher, Chef…"
             autoCapitalize="words"
             maxLength={40}
           />
         </Field>
       )}
-      <Field label="Years experience">
+      <Field label="Years on the tools">
         <Input
           value={years}
           onChangeText={(t) => setYears(t.replace(/[^0-9]/g, "").slice(0, 2))}
@@ -894,61 +477,13 @@ function Step1({
           maxLength={2}
         />
       </Field>
-      <Field label="Region">
+      <Field label="Suburb">
         <Input
-          value={region}
-          onChangeText={setRegion}
-          placeholder="City, region or area"
+          value={suburb}
+          onChangeText={setSuburb}
+          placeholder="Marrickville"
           autoCapitalize="words"
         />
-        <Pressable
-          onPress={useCurrentLocation}
-          disabled={locating}
-          style={({ pressed }) => [
-            styles.locationButton,
-            { borderColor: colors.border, backgroundColor: colors.card },
-            (pressed || locating) && { opacity: 0.75 },
-          ]}
-        >
-          <Feather name="map-pin" size={16} color={colors.primary} />
-          <Text style={[styles.locationButtonText, { color: colors.primary }]}>
-            {locating ? "Finding your region..." : "Use current location"}
-          </Text>
-        </Pressable>
-        {locationError ? (
-          <Text style={[styles.fieldHint, { color: colors.destructive }]}>
-            {locationError}
-          </Text>
-        ) : (
-          <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
-            Type a region or share your phone location to fill this automatically.
-          </Text>
-        )}
-        <View style={styles.regionExamples}>
-          {REGION_EXAMPLES.map((example) => (
-            <Pressable
-              key={example}
-              onPress={() => setRegion(example)}
-              style={({ pressed }) => [
-                styles.optionChip,
-                {
-                  backgroundColor: region === example ? colors.primary : colors.card,
-                  borderColor: region === example ? colors.primary : colors.border,
-                },
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.optionChipText,
-                  { color: region === example ? "#FFFFFF" : colors.foreground },
-                ]}
-              >
-                {example}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
       </Field>
     </View>
   );
@@ -960,28 +495,13 @@ function Step2({
   setMode,
   showMe,
   setShowMe,
-  gender,
 }: {
   colors: ReturnType<typeof useColors>;
   mode: Mode;
   setMode: (m: Mode) => void;
   showMe: ShowMe;
   setShowMe: (s: ShowMe) => void;
-  gender: Gender | null;
 }) {
-  React.useEffect(() => {
-    if (mode === "dating") {
-      setShowMe(defaultShowMeForGender(gender));
-    } else {
-      setShowMe("everyone");
-    }
-  }, [gender, mode, setShowMe]);
-
-  const selectedShowMe =
-    mode === "dating" && showMe === "everyone"
-      ? defaultShowMeForGender(gender)
-      : showMe;
-
   return (
     <View style={{ gap: 22 }}>
       <Heading
@@ -1064,7 +584,7 @@ function Step2({
       <Field label="Show me">
         <View style={styles.segments}>
           {SHOW_OPTIONS.map((opt) => {
-            const selected = selectedShowMe === opt.value;
+            const selected = showMe === opt.value;
             return (
               <Pressable
                 key={opt.value}
@@ -1252,11 +772,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  wrapSegments: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
   segment: {
     flex: 1,
     paddingVertical: 12,
@@ -1267,114 +782,6 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
-  },
-  optionChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1.5,
-  },
-  optionChipText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  heightSliderCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
-  },
-  fieldHint: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-  },
-  photoPicker: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  photoPreview: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  photoPreviewImage: {
-    width: "100%",
-    height: "100%",
-  },
-  photoButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  photoButtonText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  onboardingMediaGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  onboardingMediaTile: {
-    width: 92,
-    height: 116,
-    borderRadius: 16,
-    overflow: "hidden",
-    position: "relative",
-  },
-  onboardingMediaImage: {
-    width: "100%",
-    height: "100%",
-  },
-  onboardingMediaRemove: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  onboardingAddMedia: {
-    width: 92,
-    height: 116,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  onboardingAddMediaText: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  locationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  locationButtonText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  regionExamples: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
   },
   modeCard: {
     flexDirection: "row",
