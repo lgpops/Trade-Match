@@ -33,6 +33,8 @@ export type UserProfile = {
   brewOfChoice: string;
   mode: Mode;
   showMe: ShowMe;
+  /** Empty array = show all trades */
+  filterTrades: TradeKey[];
 };
 
 export type Message = {
@@ -62,7 +64,7 @@ type AppState = {
   matches: Match[];
   messages: Message[];
   saveUser: (user: UserProfile) => Promise<void>;
-  updatePrefs: (prefs: Partial<Pick<UserProfile, "mode" | "showMe">>) => Promise<void>;
+  updatePrefs: (prefs: Partial<Pick<UserProfile, "mode" | "showMe" | "filterTrades">>) => Promise<void>;
   resetUser: () => Promise<void>;
   decideOnProfile: (
     profileId: string,
@@ -146,6 +148,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             brewOfChoice: profile.brew_of_choice,
             mode: profile.mode as Mode,
             showMe: profile.show_me as ShowMe,
+            filterTrades: Array.isArray(profile.filter_trades)
+              ? (profile.filter_trades as TradeKey[])
+              : [],
           });
         }
 
@@ -232,6 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         brew_of_choice: next.brewOfChoice,
         mode: next.mode,
         show_me: next.showMe,
+        filter_trades: next.filterTrades ?? [],
       });
     },
     [uid],
@@ -244,7 +250,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUser(next);
       await supabase
         .from("profiles")
-        .update({ mode: next.mode, show_me: next.showMe })
+        .update({
+          mode: next.mode,
+          show_me: next.showMe,
+          filter_trades: next.filterTrades ?? [],
+        })
         .eq("id", uid);
     },
     [uid, user],
@@ -407,6 +417,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!user) return true;
       if (user.showMe === "men" && p.gender !== "male") return false;
       if (user.showMe === "women" && p.gender !== "female") return false;
+      if (user.filterTrades?.length > 0 && !user.filterTrades.includes(p.trade)) return false;
       return true;
     });
   }, [decisions, user]);

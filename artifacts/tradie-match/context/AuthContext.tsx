@@ -1,7 +1,4 @@
-import {
-  makeRedirectUri,
-  useAuthRequest,
-} from "expo-auth-session";
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import React, {
   createContext,
@@ -29,6 +26,15 @@ type AuthState = {
 };
 
 const AuthContext = createContext<AuthState | null>(null);
+
+function parseHashParams(url: string): Record<string, string> {
+  const hash = new URL(url).hash.substring(1);
+  return hash.split("&").reduce<Record<string, string>>((acc, part) => {
+    const [k, v] = part.split("=");
+    if (k && v) acc[k] = decodeURIComponent(v);
+    return acc;
+  }, {});
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -64,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async (): Promise<string | null> => {
-    const redirectUri = makeRedirectUri({ scheme: "redcollar", path: "auth/callback" });
+    const redirectUri = Linking.createURL("auth/callback");
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -76,16 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
     if (result.type === "success") {
-      const url = result.url;
-      const params = new URL(url).hash
-        .substring(1)
-        .split("&")
-        .reduce<Record<string, string>>((acc, part) => {
-          const [k, v] = part.split("=");
-          if (k && v) acc[k] = decodeURIComponent(v);
-          return acc;
-        }, {});
-
+      const params = parseHashParams(result.url);
       if (params.access_token && params.refresh_token) {
         await supabase.auth.setSession({
           access_token: params.access_token,
@@ -98,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithApple = useCallback(async (): Promise<string | null> => {
     if (Platform.OS !== "ios") return "Apple Sign In is only available on iOS";
-    const redirectUri = makeRedirectUri({ scheme: "redcollar", path: "auth/callback" });
+    const redirectUri = Linking.createURL("auth/callback");
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "apple",
       options: {
@@ -110,16 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
     if (result.type === "success") {
-      const url = result.url;
-      const params = new URL(url).hash
-        .substring(1)
-        .split("&")
-        .reduce<Record<string, string>>((acc, part) => {
-          const [k, v] = part.split("=");
-          if (k && v) acc[k] = decodeURIComponent(v);
-          return acc;
-        }, {});
-
+      const params = parseHashParams(result.url);
       if (params.access_token && params.refresh_token) {
         await supabase.auth.setSession({
           access_token: params.access_token,

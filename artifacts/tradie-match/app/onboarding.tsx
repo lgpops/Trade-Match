@@ -112,6 +112,7 @@ export default function Onboarding() {
       brewOfChoice: brewOfChoice.trim() || "Whatever's cold",
       mode,
       showMe,
+      filterTrades: [],
     });
   };
 

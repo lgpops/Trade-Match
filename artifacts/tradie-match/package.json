@@ -56,8 +56,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.104.1",
-    "expo-auth-session": "^55.0.15",
-    "expo-crypto": "^55.0.14"
+    "@supabase/supabase-js": "^2.104.1"
   }
 }

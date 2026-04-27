@@ -52,6 +52,7 @@ alter table public.profiles add column if not exists brew_of_choice text not nul
 alter table public.profiles add column if not exists mode           text not null default 'dating';
 alter table public.profiles add column if not exists show_me        text not null default 'everyone';
 alter table public.profiles add column if not exists updated_at     timestamptz not null default now();
+alter table public.profiles add column if not exists filter_trades  text[]       not null default '{}'::text[];
 
 -- Trigger
 drop trigger if exists profiles_set_updated_at on public.profiles;

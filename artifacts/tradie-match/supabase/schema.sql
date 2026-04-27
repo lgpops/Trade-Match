@@ -41,6 +41,7 @@ create table if not exists public.profiles (
   brew_of_choice text not null default 'Whatever''s cold',
   mode           text not null default 'dating' check (mode in ('dating','mates')),
   show_me        text not null default 'everyone' check (show_me in ('men','women','everyone')),
+  filter_trades  text[]       not null default '{}'::text[],
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
