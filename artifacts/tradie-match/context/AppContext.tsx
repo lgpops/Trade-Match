@@ -25,7 +25,6 @@ import type { TradeKey } from "@/constants/trades";
 
 export type Mode = "dating" | "mates";
 export type ShowMe = "men" | "women" | "everyone";
-export type CollarType = "blue" | "white";
 
 export type DiscoveryFilters = {
   collarPreference: CollarPreference;
@@ -47,14 +46,9 @@ export type UserProfile = {
   ethnicity: Ethnicity;
   heightCm: number;
   trade: TradeKey;
-<<<<<<< HEAD
   jobTitle?: string;
   profilePhotoUri?: string;
-=======
-  customJobTitle?: string;
-  profilePhotoUri?: string;
   media: UserMedia[];
->>>>>>> 86bc71ba47104bb273cfbbd6fcb9b043dd022ef9
   yearsOnTools: number;
   region: string;
   bio: string;

@@ -27,6 +27,7 @@ import { getTrade } from "@/constants/trades";
 import { HeightSlider } from "@/components/HeightSlider";
 import { TradeBadge } from "@/components/TradeBadge";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import type { UserMedia, UserProfile } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import type { CollarType } from "@/constants/demographics";
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, matches, decisions, resetUser, saveUser } = useApp();
+  const { signOut } = useAuth();
   const [editVisible, setEditVisible] = React.useState(false);
   const topInset = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 + 20 : 84 + insets.bottom;
