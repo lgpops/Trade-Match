@@ -1,13 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -23,9 +17,13 @@ export default function DiscoverScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profiles, decideOnProfile, resetUser, user } = useApp();
-  const [matchedProfile, setMatchedProfile] = useState<SeedProfile | null>(null);
+  const [matchedProfile, setMatchedProfile] = useState<SeedProfile | null>(
+    null,
+  );
   const [matchVisible, setMatchVisible] = useState(false);
-  const [previewProfile, setPreviewProfile] = useState<SeedProfile | null>(null);
+  const [previewProfile, setPreviewProfile] = useState<SeedProfile | null>(
+    null,
+  );
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [activeDecisionId, setActiveDecisionId] = useState<string | null>(null);
 
@@ -50,9 +48,9 @@ export default function DiscoverScreen() {
       setMatchedProfile(result.profile);
       setMatchVisible(true);
       if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
-          () => {},
-        );
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        ).catch(() => {});
       }
     }
   };

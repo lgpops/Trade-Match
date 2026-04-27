@@ -38,8 +38,31 @@ import {
 } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-type Step = 0 | 1 | 2 | 3 | 4;
-const TOTAL_STEPS = 5;
+type Step = 0 | 1 | 2 | 3 | 4 | 5;
+const TOTAL_STEPS = 6;
+
+const COLLAR_OPTIONS: {
+  value: CollarType;
+  label: string;
+  sub: string;
+  icon: keyof typeof Feather.glyphMap;
+  color: string;
+}[] = [
+  {
+    value: "blue",
+    label: "Blue collar",
+    sub: "Tools, sites, shifts and hands-on work.",
+    icon: "tool",
+    color: "#2563EB",
+  },
+  {
+    value: "white",
+    label: "White collar",
+    sub: "Office, desk, professional and corporate work.",
+    icon: "briefcase",
+    color: "#64748B",
+  },
+];
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "male", label: "Man" },
@@ -110,6 +133,7 @@ export default function Onboarding() {
   const bottomInset = Platform.OS === "web" ? 34 : insets.bottom;
 
   const [step, setStep] = useState<Step>(0);
+  const [collar, setCollar] = useState<CollarType | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
@@ -190,12 +214,13 @@ export default function Onboarding() {
   ]);
 
   const onNext = async () => {
-    if (step < 4) {
+    if (step < 5) {
       setStep((s) => (s + 1) as Step);
       return;
     }
     if (!trade || !gender || !ethnicity) return;
     await saveUser({
+      collarType: collar,
       name: name.trim(),
       age: Number(age),
       gender,
@@ -265,6 +290,9 @@ export default function Onboarding() {
       >
         <View style={styles.body}>
           {step === 0 && (
+            <StepCollar colors={colors} collar={collar} setCollar={setCollar} />
+          )}
+          {step === 1 && (
             <Step0
               colors={colors}
               name={name}
@@ -283,7 +311,7 @@ export default function Onboarding() {
               setHeightCm={setHeightCm}
             />
           )}
-          {step === 1 && (
+          {step === 2 && (
             <Step1
               colors={colors}
               trade={trade}
@@ -304,7 +332,7 @@ export default function Onboarding() {
               setRegion={setRegion}
             />
           )}
-          {step === 2 && (
+          {step === 3 && (
             <Step2
               colors={colors}
               mode={mode}
@@ -314,8 +342,8 @@ export default function Onboarding() {
               gender={gender}
             />
           )}
-          {step === 3 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
-          {step === 4 && (
+          {step === 4 && <Step3 colors={colors} bio={bio} setBio={setBio} />}
+          {step === 5 && (
             <Step4
               colors={colors}
               rig={rig}
@@ -364,6 +392,85 @@ export default function Onboarding() {
             color={canContinue ? "#FFFFFF" : colors.mutedForeground}
           />
         </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function StepCollar({
+  colors,
+  collar,
+  setCollar,
+}: {
+  colors: ReturnType<typeof useColors>;
+  collar: CollarType | null;
+  setCollar: (c: CollarType) => void;
+}) {
+  return (
+    <View style={{ gap: 18 }}>
+      <Heading
+        eyebrow="STEP 1 OF 6"
+        title="Choose your collar"
+        sub="Start by telling Red Collar what kind of work world you're in."
+        colors={colors}
+      />
+
+      <View style={{ gap: 12 }}>
+        {COLLAR_OPTIONS.map((opt) => {
+          const selected = collar === opt.value;
+          return (
+            <Pressable
+              key={opt.value}
+              onPress={() => setCollar(opt.value)}
+              style={({ pressed }) => [
+                styles.collarCard,
+                {
+                  backgroundColor: selected ? colors.accent : colors.card,
+                  borderColor: selected ? opt.color : colors.border,
+                },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.collarIcon,
+                  { backgroundColor: selected ? opt.color : colors.secondary },
+                ]}
+              >
+                <Feather
+                  name={opt.icon}
+                  size={24}
+                  color={selected ? "#FFFFFF" : colors.foreground}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.collarLabel, { color: colors.foreground }]}
+                >
+                  {opt.label}
+                </Text>
+                <Text
+                  style={[styles.collarSub, { color: colors.mutedForeground }]}
+                >
+                  {opt.sub}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.radio,
+                  {
+                    borderColor: selected ? opt.color : colors.border,
+                    backgroundColor: selected ? opt.color : "transparent",
+                  },
+                ]}
+              >
+                {selected ? (
+                  <Feather name="check" size={12} color="#FFFFFF" />
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -503,7 +610,7 @@ function Step0({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 1 OF 5"
+        eyebrow="STEP 2 OF 6"
         title="G'day, what's your name?"
         sub="The basics. Real name, real age. We're a no-bullshit kind of crew."
         colors={colors}
@@ -985,7 +1092,7 @@ function Step2({
   return (
     <View style={{ gap: 22 }}>
       <Heading
-        eyebrow="STEP 3 OF 5"
+        eyebrow="STEP 4 OF 6"
         title="What are you here for?"
         sub="You can change this any time from the filters up top."
         colors={colors}
@@ -1026,18 +1133,12 @@ function Step2({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={[
-                      styles.modeLabel,
-                      { color: colors.foreground },
-                    ]}
+                    style={[styles.modeLabel, { color: colors.foreground }]}
                   >
                     {opt.label}
                   </Text>
                   <Text
-                    style={[
-                      styles.modeSub,
-                      { color: colors.mutedForeground },
-                    ]}
+                    style={[styles.modeSub, { color: colors.mutedForeground }]}
                   >
                     {opt.sub}
                   </Text>
@@ -1047,7 +1148,9 @@ function Step2({
                     styles.radio,
                     {
                       borderColor: selected ? colors.primary : colors.border,
-                      backgroundColor: selected ? colors.primary : "transparent",
+                      backgroundColor: selected
+                        ? colors.primary
+                        : "transparent",
                     },
                   ]}
                 >
@@ -1107,7 +1210,7 @@ function Step3({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 4 OF 5"
+        eyebrow="STEP 5 OF 6"
         title="Sell yourself"
         sub="A few honest lines beats a list of hobbies. Tell them who they're getting."
         colors={colors}
@@ -1155,7 +1258,7 @@ function Step4({
   return (
     <View style={{ gap: 18 }}>
       <Heading
-        eyebrow="STEP 5 OF 5"
+        eyebrow="STEP 6 OF 6"
         title="The little things"
         sub="Optional, but the good stuff. Skip if you're keen to crack on."
         colors={colors}
