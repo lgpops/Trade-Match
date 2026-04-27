@@ -2,20 +2,25 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { getTrade, type TradeKey } from "@/constants/trades";
+import { getTrade, type JobKey } from "@/constants/trades";
 
 type Props = {
-  trade: TradeKey;
+  job?: JobKey;
+  trade?: JobKey;
+  customJobTitle?: string;
+  label?: string;
   size?: "sm" | "md" | "lg";
   customLabel?: string;
 };
 
-export function TradeBadge({ trade, size = "md", customLabel }: Props) {
-  const t = getTrade(trade);
+export function TradeBadge({ job, trade, customJobTitle, label: labelOverride, size = "md" }: Props) {
+  const jobKey = job ?? trade ?? "other";
+  const t = getTrade(jobKey);
   const padV = size === "sm" ? 4 : size === "lg" ? 8 : 6;
   const padH = size === "sm" ? 8 : size === "lg" ? 14 : 10;
   const fontSize = size === "sm" ? 11 : size === "lg" ? 14 : 12;
   const iconSize = size === "sm" ? 10 : size === "lg" ? 14 : 12;
+  const label = labelOverride ?? (jobKey === "other" && customJobTitle ? customJobTitle : t.nickname);
 
   return (
     <View
@@ -28,9 +33,19 @@ export function TradeBadge({ trade, size = "md", customLabel }: Props) {
         },
       ]}
     >
-      <Feather name="tool" size={iconSize} color="#FFFFFF" />
+      <Feather
+        name={
+          t.collarType === "blue"
+            ? "tool"
+            : t.collarType === "white"
+              ? "briefcase"
+              : "star"
+        }
+        size={iconSize}
+        color="#FFFFFF"
+      />
       <Text style={[styles.text, { fontSize }]} numberOfLines={1}>
-        {customLabel ?? t.nickname}
+        {label}
       </Text>
     </View>
   );

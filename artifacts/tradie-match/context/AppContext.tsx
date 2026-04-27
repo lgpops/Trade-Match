@@ -13,25 +13,51 @@ import {
   type Gender,
   type SeedProfile,
 } from "@/constants/seedProfiles";
+import {
+  DEFAULT_MIN_HEIGHT_CM,
+  isHeightWithinPreference,
+  type CollarPreference,
+  type CollarType,
+  type Ethnicity,
+  type EthnicityPreference,
+} from "@/constants/demographics";
 import type { TradeKey } from "@/constants/trades";
 
 export type Mode = "dating" | "mates";
 export type ShowMe = "men" | "women" | "everyone";
 
+export type DiscoveryFilters = {
+  collarPreference: CollarPreference;
+  ethnicityPreference: EthnicityPreference;
+  minHeightCm: number;
+};
+
+export type UserMedia = {
+  id: string;
+  uri: string;
+  type: "image";
+};
+
 export type UserProfile = {
   name: string;
   age: number;
   gender: Gender;
+  collarType: CollarType;
+  ethnicity: Ethnicity;
+  heightCm: number;
   trade: TradeKey;
-  jobTitle?: string;
+  customJobTitle?: string;
+  profilePhotoUri?: string;
+  media: UserMedia[];
   yearsOnTools: number;
-  suburb: string;
+  region: string;
   bio: string;
   rig: string;
   weekendMove: string;
   brewOfChoice: string;
   mode: Mode;
   showMe: ShowMe;
+  filters: DiscoveryFilters;
 };
 
 export type Message = {
@@ -60,7 +86,10 @@ type AppState = {
   matches: Match[];
   messages: Message[];
   saveUser: (user: UserProfile) => Promise<void>;
-  updatePrefs: (prefs: Partial<Pick<UserProfile, "mode" | "showMe">>) => Promise<void>;
+  updateUser: (updates: Partial<UserProfile>) => Promise<void>;
+  updatePrefs: (
+    prefs: Partial<Pick<UserProfile, "mode" | "showMe" | "filters">>,
+  ) => Promise<void>;
   resetUser: () => Promise<void>;
   decideOnProfile: (
     profileId: string,
@@ -86,7 +115,7 @@ const AUTO_REPLIES_DATING = [
   "I reckon we'd get on, you sound alright",
   "Coffee Saturday morning?",
   "Just finished site, smashed",
-  "Tell me your worst tradie horror story",
+  "Tell me your worst work horror story",
 ];
 
 const AUTO_REPLIES_MATES = [
@@ -101,6 +130,33 @@ const AUTO_REPLIES_MATES = [
 ];
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+export const DEFAULT_DISCOVERY_FILTERS: DiscoveryFilters = {
+  collarPreference: "everyone",
+  ethnicityPreference: "everyone",
+  minHeightCm: DEFAULT_MIN_HEIGHT_CM,
+};
+
+type StoredUserProfile = Partial<UserProfile> &
+  Omit<UserProfile, "region"> & {
+    suburb?: string;
+    region?: string;
+  };
+
+function hydrateUser(user: StoredUserProfile): UserProfile {
+  return {
+    ...user,
+    collarType: user.collarType ?? "blue",
+    ethnicity: user.ethnicity ?? "other",
+    heightCm: user.heightCm ?? 175,
+    region: user.region ?? user.suburb ?? "",
+    media: (user.media ?? []).slice(0, 4),
+    filters: {
+      ...DEFAULT_DISCOVERY_FILTERS,
+      ...(user.filters ?? {}),
+    },
+  };
+}
 
 const AppContext = createContext<AppState | null>(null);
 
@@ -120,7 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(STORAGE_KEYS.matches),
           AsyncStorage.getItem(STORAGE_KEYS.messages),
         ]);
-        if (u) setUser(JSON.parse(u));
+        if (u) setUser(hydrateUser(JSON.parse(u)));
         if (d) setDecisions(JSON.parse(d));
         if (m) {
           const parsed: Match[] = JSON.parse(m);
@@ -162,10 +218,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
   }, []);
 
+  const updateUser = useCallback<AppState["updateUser"]>(
+    async (updates) => {
+      if (!user) return;
+      const next = hydrateUser({
+        ...user,
+        ...updates,
+        filters: updates.filters
+          ? { ...user.filters, ...updates.filters }
+          : user.filters,
+      });
+      setUser(next);
+      await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
+    },
+    [user],
+  );
+
   const updatePrefs = useCallback<AppState["updatePrefs"]>(
     async (prefs) => {
       if (!user) return;
-      const next = { ...user, ...prefs };
+      const next = hydrateUser({
+        ...user,
+        ...prefs,
+        filters: prefs.filters
+          ? { ...user.filters, ...prefs.filters }
+          : user.filters,
+      });
       setUser(next);
       await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
     },
@@ -254,8 +332,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const markMatchRead = useCallback<AppState["markMatchRead"]>(
     (matchId) => {
       setMatches((curr) => {
+        const current = curr.find((m) => m.id === matchId);
+        if (!current) return curr;
+        const now = Date.now();
+        if (current.lastReadAt >= now - 1000) return curr;
         const next = curr.map((m) =>
-          m.id === matchId ? { ...m, lastReadAt: Date.now() } : m,
+          m.id === matchId ? { ...m, lastReadAt: now } : m,
         );
         void persistMatches(next);
         return next;
@@ -270,6 +352,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!user) return true;
       if (user.showMe === "men" && p.gender !== "male") return false;
       if (user.showMe === "women" && p.gender !== "female") return false;
+      if (
+        user.filters.collarPreference !== "everyone" &&
+        p.collarType !== user.filters.collarPreference
+      ) {
+        return false;
+      }
+      if (
+        user.filters.ethnicityPreference !== "everyone" &&
+        p.ethnicity !== user.filters.ethnicityPreference
+      ) {
+        return false;
+      }
+      if (
+        !isHeightWithinPreference(
+          p.heightCm,
+          user.filters.minHeightCm,
+        )
+      ) {
+        return false;
+      }
       return true;
     });
   }, [decisions, user]);
@@ -293,6 +395,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     matches,
     messages,
     saveUser,
+    updateUser,
     updatePrefs,
     resetUser,
     decideOnProfile,
