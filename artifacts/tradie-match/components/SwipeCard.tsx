@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { TradeBadge } from "@/components/TradeBadge";
+import { formatCollarType, formatHeight } from "@/constants/demographics";
 import type { SeedProfile } from "@/constants/seedProfiles";
 import { getTrade } from "@/constants/trades";
 import { useColors } from "@/hooks/useColors";
@@ -33,6 +34,18 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
   const colors = useColors();
   const trade = getTrade(profile.trade);
   const position = useRef(new Animated.ValueXY()).current;
+  const isTopRef = useRef(isTop);
+  const onSwipeRef = useRef(onSwipe);
+  const onTapRef = useRef(onTap);
+
+  useEffect(() => {
+    isTopRef.current = isTop;
+  }, [isTop]);
+
+  useEffect(() => {
+    onSwipeRef.current = onSwipe;
+    onTapRef.current = onTap;
+  }, [onSwipe, onTap]);
 
   useEffect(() => {
     position.setValue({ x: 0, y: 0 });
@@ -57,9 +70,9 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTop,
+      onStartShouldSetPanResponder: () => isTopRef.current,
       onMoveShouldSetPanResponder: (_, g) =>
-        isTop && (Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5),
+        isTopRef.current && (Math.abs(g.dx) > 5 || Math.abs(g.dy) > 5),
       onPanResponderMove: (_, g) => {
         position.setValue({ x: g.dx, y: g.dy });
       },
@@ -69,13 +82,13 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
             toValue: { x: SCREEN_WIDTH * 1.5, y: g.dy },
             duration: SWIPE_OUT_DURATION,
             useNativeDriver: false,
-          }).start(() => onSwipe("right"));
+          }).start(() => onSwipeRef.current("right"));
         } else if (g.dx < -SWIPE_THRESHOLD) {
           Animated.timing(position, {
             toValue: { x: -SCREEN_WIDTH * 1.5, y: g.dy },
             duration: SWIPE_OUT_DURATION,
             useNativeDriver: false,
-          }).start(() => onSwipe("left"));
+          }).start(() => onSwipeRef.current("left"));
         } else {
           Animated.spring(position, {
             toValue: { x: 0, y: 0 },
@@ -133,7 +146,7 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
 
       <View style={styles.info}>
         <View style={styles.row}>
-          <TradeBadge trade={profile.trade} size="md" />
+          <TradeBadge job={profile.trade} customJobTitle={profile.customJobTitle} size="md" />
           <View style={styles.distance}>
             <Feather name="map-pin" size={12} color="#FFFFFF" />
             <Text style={styles.distanceText}>{profile.distanceKm} km</Text>
@@ -143,7 +156,10 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
           {profile.name}, {profile.age}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {profile.yearsOnTools} yrs on the tools · {profile.suburb}
+          {formatCollarType(profile.collarType)} · {formatHeight(profile.heightCm)}
+        </Text>
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {profile.yearsOnTools} yrs experience · {profile.region}
         </Text>
         <Text style={styles.bio} numberOfLines={2}>
           {profile.bio}
@@ -152,7 +168,7 @@ export function SwipeCard({ profile, isTop, stackOffset, onSwipe, onTap }: Props
           <View style={styles.tapHint}>
             <Feather name="info" size={12} color="rgba(255,255,255,0.85)" />
             <Text
-              onPress={onTap}
+              onPress={() => onTapRef.current()}
               style={styles.tapHintText}
               suppressHighlighting
             >

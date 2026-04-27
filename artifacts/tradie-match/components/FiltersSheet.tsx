@@ -3,13 +3,26 @@ import React, { useState } from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { HeightSlider } from "@/components/HeightSlider";
 import {
+  COLLAR_FILTER_OPTIONS,
+  DEFAULT_MIN_HEIGHT_CM,
+  ETHNICITY_FILTER_OPTIONS,
+  HEIGHT_SLIDER_MAX_CM,
+  HEIGHT_SLIDER_MIN_CM,
+  formatMinHeightPreference,
+  type CollarPreference,
+  type EthnicityPreference,
+} from "@/constants/demographics";
+import {
+  DEFAULT_DISCOVERY_FILTERS,
   useApp,
   type Mode,
   type ShowMe,
@@ -30,13 +43,13 @@ const MODE_OPTIONS: {
   {
     value: "dating",
     label: "Dating",
-    sub: "Looking for someone special",
+    sub: "Just looking for love",
     icon: "heart",
   },
   {
     value: "mates",
     label: "Mateship",
-    sub: "After mates on the tools",
+    sub: "After mates across work and life",
     icon: "users",
   },
 ];
@@ -47,6 +60,12 @@ const SHOW_OPTIONS: { value: ShowMe; label: string }[] = [
   { value: "everyone", label: "Everyone" },
 ];
 
+function defaultShowMeForGender(gender: "male" | "female" | undefined): ShowMe {
+  if (gender === "female") return "men";
+  if (gender === "male") return "women";
+  return "everyone";
+}
+
 export function FiltersSheet({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -54,17 +73,46 @@ export function FiltersSheet({ visible, onClose }: Props) {
 
   const [mode, setMode] = useState<Mode>(user?.mode ?? "dating");
   const [showMe, setShowMe] = useState<ShowMe>(user?.showMe ?? "everyone");
+  const [collarPreference, setCollarPreference] =
+    useState<CollarPreference>("everyone");
+  const [ethnicityPreference, setEthnicityPreference] =
+    useState<EthnicityPreference>("everyone");
+  const [minHeightCm, setMinHeightCm] = useState(DEFAULT_MIN_HEIGHT_CM);
 
   React.useEffect(() => {
     if (visible && user) {
       setMode(user.mode);
       setShowMe(user.showMe);
+      setCollarPreference(
+        user.filters?.collarPreference ??
+          DEFAULT_DISCOVERY_FILTERS.collarPreference,
+      );
+      setEthnicityPreference(
+        user.filters?.ethnicityPreference ??
+          DEFAULT_DISCOVERY_FILTERS.ethnicityPreference,
+      );
+      setMinHeightCm(
+        user.filters?.minHeightCm ?? DEFAULT_DISCOVERY_FILTERS.minHeightCm,
+      );
     }
   }, [visible, user]);
 
   const onSave = async () => {
-    await updatePrefs({ mode, showMe });
+    await updatePrefs({
+      mode,
+      showMe,
+      filters: {
+        collarPreference,
+        ethnicityPreference,
+        minHeightCm,
+      },
+    });
     onClose();
+  };
+
+  const selectMode = (nextMode: Mode) => {
+    setMode(nextMode);
+    setShowMe(nextMode === "mates" ? "everyone" : defaultShowMeForGender(user?.gender));
   };
 
   return (
@@ -96,114 +144,152 @@ export function FiltersSheet({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              I&apos;M HERE FOR
-            </Text>
-            <View style={{ gap: 10 }}>
-              {MODE_OPTIONS.map((opt) => {
-                const selected = mode === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => setMode(opt.value)}
-                    style={({ pressed }) => [
-                      styles.modeCard,
-                      {
-                        backgroundColor: selected ? colors.accent : colors.card,
-                        borderColor: selected ? colors.primary : colors.border,
-                      },
-                      pressed && { opacity: 0.85 },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.modeIcon,
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                I&apos;M HERE FOR
+              </Text>
+              <View style={{ gap: 10 }}>
+                {MODE_OPTIONS.map((opt) => {
+                  const selected = mode === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => selectMode(opt.value)}
+                      style={({ pressed }) => [
+                        styles.modeCard,
                         {
-                          backgroundColor: selected
-                            ? colors.primary
-                            : colors.secondary,
-                        },
-                      ]}
-                    >
-                      <Feather
-                        name={opt.icon}
-                        size={18}
-                        color={selected ? "#FFFFFF" : colors.foreground}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.modeLabel,
-                          { color: colors.foreground },
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.modeSub,
-                          { color: colors.mutedForeground },
-                        ]}
-                      >
-                        {opt.sub}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.radio,
-                        {
+                          backgroundColor: selected ? colors.accent : colors.card,
                           borderColor: selected ? colors.primary : colors.border,
-                          backgroundColor: selected ? colors.primary : "transparent",
                         },
+                        pressed && { opacity: 0.85 },
                       ]}
                     >
-                      {selected ? (
-                        <Feather name="check" size={12} color="#FFFFFF" />
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
+                      <View
+                        style={[
+                          styles.modeIcon,
+                          {
+                            backgroundColor: selected
+                              ? colors.primary
+                              : colors.secondary,
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name={opt.icon}
+                          size={18}
+                          color={selected ? "#FFFFFF" : colors.foreground}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.modeLabel,
+                            { color: colors.foreground },
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.modeSub,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {opt.sub}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.radio,
+                          {
+                            borderColor: selected ? colors.primary : colors.border,
+                            backgroundColor: selected ? colors.primary : "transparent",
+                          },
+                        ]}
+                      >
+                        {selected ? (
+                          <Feather name="check" size={12} color="#FFFFFF" />
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              SHOW ME
-            </Text>
-            <View style={styles.segments}>
-              {SHOW_OPTIONS.map((opt) => {
-                const selected = showMe === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => setShowMe(opt.value)}
-                    style={({ pressed }) => [
-                      styles.segment,
-                      {
-                        backgroundColor: selected ? colors.primary : colors.card,
-                        borderColor: selected ? colors.primary : colors.border,
-                      },
-                      pressed && { opacity: 0.85 },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.segmentText,
-                        {
-                          color: selected ? "#FFFFFF" : colors.foreground,
-                        },
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                SHOW ME
+              </Text>
+              <View style={styles.segments}>
+                {SHOW_OPTIONS.map((opt) => {
+                  const selected = showMe === opt.value;
+                  return (
+                    <Segment
+                      key={opt.value}
+                      label={opt.label}
+                      selected={selected}
+                      onPress={() => setShowMe(opt.value)}
+                    />
+                  );
+                })}
+              </View>
             </View>
-          </View>
+
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                COLLAR TYPE
+              </Text>
+              <View style={styles.segments}>
+                {COLLAR_FILTER_OPTIONS.map((opt) => (
+                  <Segment
+                    key={opt.value}
+                    label={opt.label}
+                    selected={collarPreference === opt.value}
+                    onPress={() => setCollarPreference(opt.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                ETHNICITY
+              </Text>
+              <View style={styles.wrapSegments}>
+                {ETHNICITY_FILTER_OPTIONS.map((opt) => (
+                  <Chip
+                    key={opt.value}
+                    label={opt.label}
+                    selected={ethnicityPreference === opt.value}
+                    onPress={() => setEthnicityPreference(opt.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterCard}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                HEIGHT
+              </Text>
+              <Text style={[styles.filterSummary, { color: colors.foreground }]}>
+                {formatMinHeightPreference(minHeightCm)}
+              </Text>
+              <View style={[styles.heightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <HeightSlider
+                  label="Minimum height"
+                  value={minHeightCm}
+                  min={HEIGHT_SLIDER_MIN_CM}
+                  max={HEIGHT_SLIDER_MAX_CM}
+                  onChange={setMinHeightCm}
+                />
+              </View>
+            </View>
+          </ScrollView>
 
           <Pressable
             onPress={onSave}
@@ -221,6 +307,76 @@ export function FiltersSheet({ visible, onClose }: Props) {
   );
 }
 
+function Segment({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.segment,
+        {
+          backgroundColor: selected ? colors.primary : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <Text
+        style={[
+          styles.segmentText,
+          {
+            color: selected ? "#FFFFFF" : colors.foreground,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        {
+          backgroundColor: selected ? colors.primary : colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          { color: selected ? "#FFFFFF" : colors.foreground },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: "flex-end" },
   backdropTap: { flex: 1 },
@@ -230,6 +386,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     gap: 22,
+    maxHeight: "92%",
   },
   handle: {
     width: 36,
@@ -249,7 +406,19 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.4,
   },
+  scrollContent: {
+    gap: 22,
+    paddingBottom: 2,
+  },
   section: { gap: 12 },
+  filterCard: {
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(215,38,56,0.18)",
+    backgroundColor: "rgba(255,255,255,0.58)",
+    padding: 14,
+  },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
@@ -291,6 +460,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  wrapSegments: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   segment: {
     flex: 1,
     paddingVertical: 12,
@@ -301,6 +475,26 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
+  chipText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  filterSummary: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  heightCard: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+    gap: 14,
   },
   saveBtn: {
     paddingVertical: 16,

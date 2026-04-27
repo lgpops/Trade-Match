@@ -25,14 +25,13 @@ export default function DiscoverScreen() {
     null,
   );
   const [filtersVisible, setFiltersVisible] = useState(false);
-
-  const isMates = user?.mode === "mates";
-  const tagline = isMates ? "Find your crew." : "Knock off, hook up.";
+  const [activeDecisionId, setActiveDecisionId] = useState<string | null>(null);
 
   const topProfile = profiles[0];
 
-  const handleSwipe = (dir: "left" | "right") => {
-    if (!topProfile) return;
+  const handleSwipe = (dir: "left" | "right", profileId = topProfile?.id) => {
+    if (!profileId || activeDecisionId) return;
+    setActiveDecisionId(profileId);
     if (Platform.OS !== "web") {
       Haptics.impactAsync(
         dir === "right"
@@ -41,9 +40,10 @@ export default function DiscoverScreen() {
       ).catch(() => {});
     }
     const result = decideOnProfile(
-      topProfile.id,
+      profileId,
       dir === "right" ? "like" : "pass",
     );
+    setActiveDecisionId(null);
     if (result.matched && result.profile) {
       setMatchedProfile(result.profile);
       setMatchVisible(true);
@@ -65,14 +65,9 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topInset + 8 }]}>
-        <View>
-          <Text style={[styles.brandSmall, { color: colors.mutedForeground }]}>
-            RED COLLAR
-          </Text>
-          <Text style={[styles.brand, { color: colors.foreground }]}>
-            {tagline}
-          </Text>
-        </View>
+        <Text style={[styles.brand, { color: colors.foreground }]}>
+          Red Collar
+        </Text>
         <Pressable
           style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
           onPress={() => setFiltersVisible(true)}
@@ -117,11 +112,13 @@ export default function DiscoverScreen() {
             <View style={styles.actions}>
               <Pressable
                 onPress={() => handleButtonAction("pass")}
+                disabled={!!activeDecisionId}
                 style={({ pressed }) => [
                   styles.actionBtn,
                   styles.passBtn,
                   { backgroundColor: colors.card, borderColor: colors.border },
-                  pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] },
+                  activeDecisionId && { opacity: 0.5 },
+                  pressed && !activeDecisionId && { opacity: 0.7, transform: [{ scale: 0.96 }] },
                 ]}
               >
                 <Feather name="x" size={26} color={colors.destructive} />
@@ -141,11 +138,13 @@ export default function DiscoverScreen() {
 
               <Pressable
                 onPress={() => handleButtonAction("like")}
+                disabled={!!activeDecisionId}
                 style={({ pressed }) => [
                   styles.actionBtn,
                   styles.likeBtn,
                   { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+                  activeDecisionId && { opacity: 0.5 },
+                  pressed && !activeDecisionId && { opacity: 0.85, transform: [{ scale: 0.96 }] },
                 ]}
               >
                 <Feather name="heart" size={28} color="#FFFFFF" />
@@ -172,12 +171,12 @@ export default function DiscoverScreen() {
         onPass={() => {
           const p = previewProfile;
           setPreviewProfile(null);
-          if (p && p.id === topProfile?.id) handleSwipe("left");
+          if (p && p.id === topProfile?.id) handleSwipe("left", p.id);
         }}
         onLike={() => {
           const p = previewProfile;
           setPreviewProfile(null);
-          if (p && p.id === topProfile?.id) handleSwipe("right");
+          if (p && p.id === topProfile?.id) handleSwipe("right", p.id);
         }}
       />
     </View>
@@ -193,16 +192,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 16,
   },
-  brandSmall: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 2,
-  },
   brand: {
-    fontSize: 26,
+    fontSize: 32,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
-    marginTop: 2,
   },
   iconBtn: {
     width: 40,
@@ -252,7 +245,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    shadowColor: "#E85D1A",
+    shadowColor: "#D72638",
     shadowOpacity: 0.35,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },

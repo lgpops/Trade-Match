@@ -14,9 +14,18 @@
       "backgroundColor": "#1A1410"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Red Collar uses your location to suggest your region during onboarding.",
+        "NSPhotoLibraryUsageDescription": "Red Collar lets you choose profile photos from your library."
+      }
     },
-    "android": {},
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -28,6 +37,12 @@
         }
       ],
       "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Red Collar lets you choose profile photos from your library."
+        }
+      ],
       "expo-web-browser"
     ],
     "experiments": {
